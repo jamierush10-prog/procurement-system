@@ -24,14 +24,23 @@
         }
         .log-err { color: #ff4444; }
         .log-warn { color: #ffbb33; }
+        .code-snippet { background:#eee; padding:2px 5px; border-radius:4px; font-weight:bold; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
     <div class="container">
-        <h2>⚡ Batch Upload Requisitions</h2>
-        <p>Upload an Excel file with columns: <b>PartNo, ReqID, Hull, Qty</b></p>
+        <h2>⚡ Req Batch Upload</h2>
+        <p>Upload an Excel file with these exact columns:</p>
+        <p>
+            <span class="code-snippet">PartNo</span>
+            <span class="code-snippet">ReqID</span>
+            <span class="code-snippet">Hull</span>
+            <span class="code-snippet">Qty</span>
+            <span class="code-snippet">UOM</span>
+            <span class="code-snippet">Description</span>
+        </p>
 
         <div class="drop-zone" id="dropZone">
             <h3>📂 Drag & Drop Excel File Here</h3>
@@ -85,18 +94,20 @@
 
                     let count = 0;
                     for (const row of rows) {
-                        // 1. Validate Row
+                        // 1. Validate Row (Hull is now required)
                         if (!row.PartNo || !row.ReqID || !row.Hull) {
                             log(`Skipping Row ${count+1}: Missing PartNo, ReqID, or Hull`, "warn");
                             continue;
                         }
 
                         const partNo = row.PartNo.toString().toUpperCase().trim();
+                        
+                        // Prepare the Req Item
                         const reqItem = {
                             reqId: row.ReqID.toString(),
-                            hull: row.Hull.toString(),
+                            hull: row.Hull.toString(), // Explicitly captures Hull
                             qtyReq: Number(row.Qty || 0),
-                            uom: row.UOM || "EA",
+                            uom: row.UOM || "EA",       // Captures UOM (default EA)
                             status: "Open",
                             dateAdded: new Date().toISOString()
                         };
@@ -106,16 +117,19 @@
                         const docSnap = await getDoc(docRef);
 
                         if (docSnap.exists()) {
-                            // Part Exists: Append Req
-                            await updateDoc(docRef, {
+                            // Part Exists: Append Req & Update Description if provided
+                            const updates = {
                                 requisitions: arrayUnion(reqItem)
-                            });
+                            };
+                            if (row.Description) updates.desc = row.Description; // Update Desc
+
+                            await updateDoc(docRef, updates);
                             log(`[${partNo}] Appended Req ${reqItem.reqId}`);
                         } else {
                             // New Part: Create Shell + Req
                             await setDoc(docRef, {
                                 partNo: partNo,
-                                desc: row.Description || "Imported Part",
+                                desc: row.Description || "Imported Part", // Captures Description
                                 requisitions: [reqItem],
                                 quotes: [] 
                             });
