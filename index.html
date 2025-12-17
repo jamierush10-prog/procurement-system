@@ -103,7 +103,6 @@
         <div class="modal-card">
             <h3 class="modal-title">✏️ Modify Requisition</h3>
             <input type="hidden" id="edit_partNo">
-            <input type="hidden" id="edit_original_reqId"> <input type="hidden" id="edit_original_hull">
             
             <div class="form-group">
                 <label>Req ID</label>
@@ -134,13 +133,12 @@
     </div>
 
     <script type="module">
-        import { db, collection, getDocs, getDoc, doc, updateDoc, query, where, limit } from './firebase-config.js';
+        import { db, collection, getDocs, getDoc, doc, updateDoc, deleteDoc, query, where, limit } from './firebase-config.js';
 
         // --- SECURITY CHECK ---
         if (!sessionStorage.getItem("austal_user")) {
             window.location.href = "login.html";
         }
-        // ----------------------
 
         const tbody = document.getElementById('tableBody');
         const searchInput = document.getElementById('searchInput');
@@ -192,12 +190,12 @@
                 }
                 const price = bestQuote ? Number(bestQuote.price) : 0;
 
-                // --- GENERATE ROWS ---
+                // --- ROW GENERATION ---
                 if (data.requisitions && data.requisitions.length > 0) {
+                    // CASE A: Active Requisitions (Standard Rows)
                     data.requisitions.forEach((req, index) => {
                         const lineTotal = price * (req.qtyReq || 0);
 
-                        // We store data attributes in the Edit button to pull them later
                         const row = `
                             <tr>
                                 <td>
@@ -220,12 +218,16 @@
                         tbody.innerHTML += row;
                     });
                 } else {
-                    // Orphan Part Row (No Edit/Delete for Req because there isn't one)
+                    // CASE B: Orphan Part (Quote exists, but no Req)
+                    // We now add buttons here too. Index -1 tells the system it's a "New" req.
                     const row = `
                         <tr>
-                            <td><span style="color:#ccc; font-size:12px;">No Req</span></td>
+                            <td>
+                                <button class="btn-icon" onclick="openEdit('${data.partNo}', -1)" title="Add Req Info">✏️</button>
+                                <button class="btn-icon btn-del" onclick="deletePart('${data.partNo}')" title="Delete Entire Record">🗑️</button>
+                            </td>
                             <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
-                            <td style="color:#999; font-style:italic;">-</td>
+                            <td style="color:#999; font-style:italic;">No Req</td>
                             <td>-</td>
                             <td>${data.desc || '-'}</td>
                             <td><span style="background:${bestQuote ? '#28a745' : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
@@ -243,31 +245,31 @@
         }
 
         // --- 4. DELETE LOGIC ---
+        
+        // Type A: Delete a single Req Line
         window.deleteReq = async (partNo, index) => {
-            if(!confirm("Are you sure you want to delete this requisition line? This cannot be undone.")) return;
-
+            if(!confirm("Delete this requisition line?")) return;
             try {
                 const docRef = doc(db, "parts", partNo);
                 const docSnap = await getDoc(docRef);
-                
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const updatedReqs = [...data.requisitions]; // Copy array
-                    
-                    // Remove item at specific index
+                    const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
-                    
-                    // Save back to cloud
                     await updateDoc(docRef, { requisitions: updatedReqs });
-                    
-                    alert("Line Deleted.");
-                    // Refresh view
-                    if(searchInput.value) searchData(); else loadInitial();
+                    refreshView();
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Error deleting: " + err.message);
-            }
+            } catch (err) { alert("Error: " + err.message); }
+        }
+
+        // Type B: Delete the Entire Part (used for Orphans)
+        window.deletePart = async (partNo) => {
+            if(!confirm(`Are you sure you want to PERMANENTLY delete Part ${partNo}?\n\nSince this part has no active Requisitions, this will delete the Quote History as well.`)) return;
+            try {
+                await deleteDoc(doc(db, "parts", partNo));
+                alert("Part Record Deleted.");
+                refreshView();
+            } catch (err) { alert("Error: " + err.message); }
         }
 
         // --- 5. EDIT MODAL LOGIC ---
@@ -275,32 +277,39 @@
         let currentEditIndex = null;
 
         window.openEdit = async (partNo, index) => {
-            // Get current data to fill form
+            currentEditPart = partNo;
+            currentEditIndex = index;
+            
+            // Get current data
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
-
             const data = docSnap.data();
-            const req = data.requisitions[index];
 
-            // Fill Modal
             document.getElementById('edit_partNo').value = partNo;
-            currentEditPart = partNo;
-            currentEditIndex = index;
+            document.getElementById('edit_desc').value = data.desc || "";
 
-            document.getElementById('edit_reqId').value = req.reqId;
-            document.getElementById('edit_hull').value = req.hull;
-            document.getElementById('edit_qty').value = req.qtyReq;
-            document.getElementById('edit_uom').value = req.uom || "EA";
-            document.getElementById('edit_desc').value = data.desc;
+            if(index === -1) {
+                // Orphan Mode: Clear fields so user can "Create" the first req
+                document.getElementById('edit_reqId').value = "";
+                document.getElementById('edit_hull').value = "";
+                document.getElementById('edit_qty').value = "";
+                document.getElementById('edit_uom').value = "EA";
+                document.querySelector('.modal-title').innerText = "✏️ Add Requisition Details";
+            } else {
+                // Edit Mode: Fill with existing data
+                const req = data.requisitions[index];
+                document.getElementById('edit_reqId').value = req.reqId;
+                document.getElementById('edit_hull').value = req.hull;
+                document.getElementById('edit_qty').value = req.qtyReq;
+                document.getElementById('edit_uom').value = req.uom;
+                document.querySelector('.modal-title').innerText = "✏️ Modify Requisition";
+            }
 
-            // Show Modal
             document.getElementById('editModal').style.display = 'flex';
         }
 
-        window.closeModal = () => {
-            document.getElementById('editModal').style.display = 'none';
-        }
+        window.closeModal = () => { document.getElementById('editModal').style.display = 'none'; }
 
         window.saveEdit = async () => {
             const partNo = currentEditPart;
@@ -312,32 +321,39 @@
                 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const updatedReqs = [...data.requisitions]; // Copy array
-                    
-                    // Update specific fields
-                    updatedReqs[index] = {
-                        ...updatedReqs[index], // Keep existing fields like dateAdded
+                    let updatedReqs = data.requisitions ? [...data.requisitions] : [];
+
+                    const newReqData = {
                         reqId: document.getElementById('edit_reqId').value,
                         hull: document.getElementById('edit_hull').value,
                         qtyReq: Number(document.getElementById('edit_qty').value),
-                        uom: document.getElementById('edit_uom').value
+                        uom: document.getElementById('edit_uom').value,
+                        status: "Open",
+                        dateAdded: new Date().toISOString()
                     };
 
-                    // Save (also update Description on the main part)
+                    if(index === -1) {
+                        // Orphan Case: Add NEW item to array
+                        updatedReqs.push(newReqData);
+                    } else {
+                        // Edit Case: Update existing item
+                        if(updatedReqs[index].dateAdded) newReqData.dateAdded = updatedReqs[index].dateAdded;
+                        updatedReqs[index] = newReqData;
+                    }
+
                     await updateDoc(docRef, { 
                         requisitions: updatedReqs,
                         desc: document.getElementById('edit_desc').value
                     });
 
                     closeModal();
-                    alert("Record Updated!");
-                    // Refresh view
-                    if(searchInput.value) searchData(); else loadInitial();
+                    refreshView();
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Error saving: " + err.message);
-            }
+            } catch (err) { alert("Error saving: " + err.message); }
+        }
+
+        function refreshView() {
+            if(searchInput.value) searchData(); else loadInitial();
         }
 
         // Initial Load
