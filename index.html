@@ -21,11 +21,13 @@
             transition: opacity 0.3s; 
             color: white;
             display: inline-block;
+            margin-left: 10px;
         }
         .btn-add:hover { opacity: 0.9; }
         
-        .btn-green { background-color: #28a745; }
-        .btn-blue { background-color: #0056b3; margin-left: 10px; }
+        .btn-green { background-color: #28a745; }   /* Single Req */
+        .btn-purple { background-color: #6f42c1; }  /* Batch Upload */
+        .btn-blue { background-color: #0056b3; }    /* Add Quote */
         
         .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
         .btn-search:hover { background-color: #004494; }
@@ -56,7 +58,8 @@
     <div class="header-container">
         <h2>☁️ Procurement Cloud Master</h2>
         <div>
-            <a href="add-req.html" class="btn-add btn-green">+ Add Requisition</a>
+            <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
+            <a href="batch-req.html" class="btn-add btn-purple">⚡ Batch Upload</a>
             <a href="add-quote.html" class="btn-add btn-blue">+ Add Quote</a>
         </div>
     </div>
@@ -78,7 +81,7 @@
                     <th>Rank</th>
                     <th>Best Supplier</th>
                     <th>Quote Date</th>
-                    <th>QTY</th>
+                    <th>QTY (Req)</th>
                     <th>Price (USD)</th>
                     <th>Total (USD)</th>
                     <th>Lead Time</th>
@@ -90,14 +93,13 @@
     </div>
 
     <script type="module">
+        import { db, collection, getDocs, query, where, limit } from './firebase-config.js';
 
         // --- SECURITY CHECK ---
-if (!sessionStorage.getItem("austal_user")) {
-    window.location.href = "login.html";
-}
-// ----------------------
-
-        import { db, collection, getDocs, query, where, limit } from './firebase-config.js';
+        if (!sessionStorage.getItem("austal_user")) {
+            window.location.href = "login.html";
+        }
+        // ----------------------
 
         const tbody = document.getElementById('tableBody');
         const searchInput = document.getElementById('searchInput');
@@ -137,7 +139,7 @@ if (!sessionStorage.getItem("austal_user")) {
             }
         }
 
-        // 3. RENDER TABLE
+        // 3. RENDER TABLE (Handles Multiple Reqs per Part)
         function renderTable(snapshot) {
             tbody.innerHTML = ""; // Clear loading message
 
@@ -150,32 +152,59 @@ if (!sessionStorage.getItem("austal_user")) {
                 const data = doc.data();
                 
                 // Find Rank 1 Quote (Best Quote)
-                // If quotes exist, find the one with rank 1. If not found, default to first in list.
                 let bestQuote = null;
                 if (data.quotes && data.quotes.length > 0) {
                     // Try to find Rank 1, otherwise sort by rank and pick first
                     bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
                 }
-                
-                // Calculate Total
-                const total = bestQuote ? (bestQuote.qty * bestQuote.price) : 0;
+                const price = bestQuote ? Number(bestQuote.price) : 0;
 
-                const row = `
-                    <tr>
-                        <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
-                        <td><span class="req-badge">${data.reqId || '-'}</span></td>
-                        <td><span class="hull-badge">${data.hull || '-'}</span></td>
-                        <td>${data.desc || 'No Description'}</td>
-                        <td><span style="background:${bestQuote ? (bestQuote.rank == 1 ? '#28a745' : '#ffc107') : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
-                        <td>${bestQuote ? bestQuote.supplier : '-'}</td>
-                        <td>${bestQuote ? bestQuote.date : '-'}</td>
-                        <td>${bestQuote ? bestQuote.qty : '-'}</td>
-                        <td class="col-currency">${bestQuote ? '$'+Number(bestQuote.price).toFixed(2) : '-'}</td>
-                        <td class="col-currency" style="background:#e8f4ff;">${bestQuote ? '$'+total.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
-                        <td>${bestQuote ? bestQuote.lead : '-'}</td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
+                // --- ROW GENERATION LOGIC ---
+                // If a part has multiple Requisitions, we generate a row for EACH one.
+                // This ensures every project (Hull) gets its own line item and price calculation.
+
+                if (data.requisitions && data.requisitions.length > 0) {
+                    data.requisitions.forEach(req => {
+                        // Calculate Total specific to THIS Req's quantity
+                        const lineTotal = price * (req.qtyReq || 0);
+
+                        const row = `
+                            <tr>
+                                <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
+                                <td><span class="req-badge">${req.reqId || '-'}</span></td>
+                                <td><span class="hull-badge">${req.hull || '-'}</span></td>
+                                <td>${data.desc || '-'}</td>
+                                <td><span style="background:${bestQuote ? (bestQuote.rank == 1 ? '#28a745' : '#ffc107') : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
+                                <td>${bestQuote ? bestQuote.supplier : '-'}</td>
+                                <td>${bestQuote ? bestQuote.date : '-'}</td>
+                                <td>${req.qtyReq || '-'}</td>
+                                <td class="col-currency">${bestQuote ? '$'+price.toFixed(2) : '-'}</td>
+                                <td class="col-currency" style="background:#e8f4ff;">${bestQuote ? '$'+lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
+                                <td>${bestQuote ? bestQuote.lead : '-'}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    // ORPHAN PART: Has Quotes but no active Requisitions
+                    // Show one row with dashes for Req info
+                    const row = `
+                        <tr>
+                            <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
+                            <td style="color:#999; font-style:italic;">No Active Req</td>
+                            <td>-</td>
+                            <td>${data.desc || '-'}</td>
+                            <td><span style="background:${bestQuote ? '#28a745' : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
+                            <td>${bestQuote ? bestQuote.supplier : '-'}</td>
+                            <td>${bestQuote ? bestQuote.date : '-'}</td>
+                            <td>-</td>
+                            <td class="col-currency">${bestQuote ? '$'+price.toFixed(2) : '-'}</td>
+                            <td class="col-currency">-</td>
+                            <td>${bestQuote ? bestQuote.lead : '-'}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                }
             });
         }
 

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Batch Upload Requisitions</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f4f9; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .drop-zone { 
+            border: 3px dashed #6f42c1; padding: 40px; background: #f8f9fa; 
+            margin: 20px 0; border-radius: 10px; cursor: pointer; transition: 0.3s;
+        }
+        .drop-zone:hover { background: #f1eaff; border-color: #563d7c; }
+        
+        h2 { color: #6f42c1; }
+        .back-link { display: block; margin-top: 20px; color: #666; text-decoration: none; }
+        
+        /* Logs */
+        #log { 
+            text-align: left; background: #333; color: #0f0; padding: 15px; 
+            height: 300px; overflow-y: auto; border-radius: 6px; font-family: monospace; font-size: 13px;
+            display: none;
+        }
+        .log-err { color: #ff4444; }
+        .log-warn { color: #ffbb33; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h2>⚡ Batch Upload Requisitions</h2>
+        <p>Upload an Excel file with columns: <b>PartNo, ReqID, Hull, Qty</b></p>
+
+        <div class="drop-zone" id="dropZone">
+            <h3>📂 Drag & Drop Excel File Here</h3>
+            <p>or click to browse</p>
+            <input type="file" id="fileInput" style="display:none" accept=".xlsx, .xls">
+        </div>
+
+        <div id="log"></div>
+        <a href="index.html" class="back-link">&#8592; Back to Dashboard</a>
+    </div>
+
+    <script type="module">
+        import { db, doc, getDoc, setDoc, updateDoc, arrayUnion } from './firebase-config.js';
+
+        // --- SECURITY CHECK ---
+        if (!sessionStorage.getItem("austal_user")) {
+            window.location.href = "login.html";
+        }
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const logBox = document.getElementById('log');
+
+        // Drag & Drop Handlers
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = '#f1eaff'; };
+        dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        function log(msg, type="") {
+            logBox.style.display = "block";
+            const div = document.createElement("div");
+            div.textContent = `> ${msg}`;
+            if(type === "error") div.className = "log-err";
+            if(type === "warn") div.className = "log-warn";
+            logBox.prepend(div);
+        }
+
+        async function handleFile(file) {
+            log(`Reading ${file.name}...`);
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+                    log(`Found ${rows.length} rows. Starting processing...`);
+
+                    let count = 0;
+                    for (const row of rows) {
+                        // 1. Validate Row
+                        if (!row.PartNo || !row.ReqID || !row.Hull) {
+                            log(`Skipping Row ${count+1}: Missing PartNo, ReqID, or Hull`, "warn");
+                            continue;
+                        }
+
+                        const partNo = row.PartNo.toString().toUpperCase().trim();
+                        const reqItem = {
+                            reqId: row.ReqID.toString(),
+                            hull: row.Hull.toString(),
+                            qtyReq: Number(row.Qty || 0),
+                            uom: row.UOM || "EA",
+                            status: "Open",
+                            dateAdded: new Date().toISOString()
+                        };
+
+                        // 2. Database Update
+                        const docRef = doc(db, "parts", partNo);
+                        const docSnap = await getDoc(docRef);
+
+                        if (docSnap.exists()) {
+                            // Part Exists: Append Req
+                            await updateDoc(docRef, {
+                                requisitions: arrayUnion(reqItem)
+                            });
+                            log(`[${partNo}] Appended Req ${reqItem.reqId}`);
+                        } else {
+                            // New Part: Create Shell + Req
+                            await setDoc(docRef, {
+                                partNo: partNo,
+                                desc: row.Description || "Imported Part",
+                                requisitions: [reqItem],
+                                quotes: [] 
+                            });
+                            log(`[${partNo}] Created New Part + Req ${reqItem.reqId}`);
+                        }
+                        count++;
+                    }
+                    log(`✅ DONE! Processed ${count} records successfully.`);
+                } catch (err) {
+                    log("SYSTEM ERROR: " + err.message, "error");
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
