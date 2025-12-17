@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Part Detail</title>
+    <title>Part Detail View</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
         
+        /* Navigation */
         .nav-link { display: inline-block; margin-bottom: 20px; color: #0056b3; text-decoration: none; font-weight: bold; font-size: 14px; }
         .nav-link:hover { text-decoration: underline; }
 
@@ -35,34 +36,26 @@
             background: #fff; border-radius: 8px; padding-bottom: 5px;
         }
         
-        /* Scrollbar */
-        .table-container::-webkit-scrollbar { height: 12px; }
-        .table-container::-webkit-scrollbar-track { background: #e0e0e0; }
-        .table-container::-webkit-scrollbar-thumb { background-color: #0056b3; border-radius: 8px; border: 2px solid #e0e0e0; }
-
-        table { width: 100%; border-collapse: collapse; min-width: 2200px; font-size: 14px; white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; font-size: 14px; white-space: nowrap; }
         thead tr { background-color: #0056b3; color: white; text-align: left; }
         th, td { padding: 12px 15px; border-bottom: 1px solid #dddddd; }
         th { position: sticky; top: 0; background-color: #0056b3; z-index: 10; }
         
         /* Helper Classes */
         .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
-        .col-total { background-color: #e8f4ff; color: #0056b3; font-weight: bold; border-left: 2px solid #ccc; border-right: 2px solid #ccc; }
-        .col-center { text-align: center; }
-
+        .col-total { background-color: #e8f4ff; color: #0056b3; font-weight: bold; }
+        
         /* Rank Colors */
         .rank-badge { padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; }
         .rank-1 { background-color: #28a745; } /* Green */
         .rank-2 { background-color: #ffc107; color: #333; } /* Yellow */
         .rank-3 { background-color: #dc3545; } /* Red */
         .rank-other { background-color: #6c757d; } /* Grey */
-
-        input[type="checkbox"] { transform: scale(1.2); cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <a href="master.html" class="nav-link">&#8592; Back to Master Quote Log</a>
+    <a href="index.html" class="nav-link">&#8592; Back to Master List</a>
 
     <div class="part-header-card">
         <div class="part-title-row">
@@ -72,10 +65,10 @@
         
         <div class="specs-grid">
             <div class="spec-box"><span class="spec-label">Description</span><span class="spec-value" id="d-desc">-</span></div>
-            <div class="spec-box"><span class="spec-label">NSN</span><span class="spec-value" id="d-nsn">-</span></div>
-            <div class="spec-box"><span class="spec-label">MFG Part No</span><span class="spec-value" id="d-mfg">-</span></div>
-            <div class="spec-box"><span class="spec-label">SPMIG</span><span class="spec-value" id="d-spmig">-</span></div>
+            <div class="spec-box"><span class="spec-label">Hull / Project</span><span class="spec-value" id="d-hull">-</span></div>
+            <div class="spec-box"><span class="spec-label">Qty Required</span><span class="spec-value" id="d-qty">-</span></div>
             <div class="spec-box"><span class="spec-label">UOM</span><span class="spec-value" id="d-uom">-</span></div>
+            <div class="spec-box"><span class="spec-label">Status</span><span class="spec-value" id="d-status">-</span></div>
         </div>
     </div>
 
@@ -87,20 +80,12 @@
                     <th>Rank</th>
                     <th>Supplier</th>
                     <th>Quote Date</th>
-                    <th>QTY</th>
+                    <th>Qty Quoted</th>
                     <th>Price (USD)</th>
                     <th>Total (USD)</th>
                     <th>Lead Time</th>
-                    <th>File</th>
-                    <th>Notes</th>
-                    <th>COG</th>
                     <th>Validity</th>
-                    <th class="col-center">Direct</th>
-                    <th class="col-center">Guam</th>
-                    <th class="col-center">Bahrain</th>
-                    <th class="col-center">Japan</th>
-                    <th class="col-center">Other</th>
-                    <th>SOS</th>
+                    <th>Notes</th>
                 </tr>
             </thead>
             <tbody id="quotes-body">
@@ -108,10 +93,10 @@
         </table>
     </div>
 
-    <script src="data.js"></script>
+    <script type="module">
+        import { db, doc, getDoc } from './firebase-config.js';
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             // 1. Get Part Number from URL
             const params = new URLSearchParams(window.location.search);
             const targetPart = params.get('part');
@@ -121,59 +106,65 @@
                 return;
             }
 
-            // 2. Find Data in PROCUREMENT_DB.parts
-            const data = PROCUREMENT_DB.parts.find(item => item.partNo === targetPart);
+            // 2. Fetch from Firebase
+            try {
+                const docRef = doc(db, "parts", targetPart);
+                const docSnap = await getDoc(docRef);
 
-            if (data) {
-                // 3. Fill Top Header
-                document.getElementById("display-part-no").textContent = data.partNo;
-                document.getElementById("d-req").textContent = "REQ: " + (data.associatedReq || "N/A");
-                document.getElementById("d-desc").textContent = data.desc;
-                document.getElementById("d-nsn").textContent = data.nsn;
-                document.getElementById("d-mfg").textContent = data.mfg;
-                document.getElementById("d-spmig").textContent = data.spmig;
-                document.getElementById("d-uom").textContent = data.uom;
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
 
-                // 4. Fill Quote Table
-                const tbody = document.getElementById("quotes-body");
-                
-                // Sort quotes by rank just in case they aren't sorted in the file
-                const sortedQuotes = data.quotes.sort((a, b) => a.rank - b.rank);
+                    // 3. Fill Top Header
+                    document.getElementById("display-part-no").textContent = data.partNo;
+                    document.getElementById("d-req").textContent = "REQ: " + (data.reqId || "N/A");
+                    document.getElementById("d-desc").textContent = data.desc || "-";
+                    document.getElementById("d-hull").textContent = data.hull || "-";
+                    document.getElementById("d-qty").textContent = data.qtyReq || "-";
+                    document.getElementById("d-uom").textContent = data.uom || "-";
+                    document.getElementById("d-status").textContent = data.status || "Open";
 
-                sortedQuotes.forEach(q => {
-                    const total = q.qty * q.price;
-                    
-                    // Determine badge color
-                    let rankClass = 'rank-other';
-                    if (q.rank === 1) rankClass = 'rank-1';
-                    if (q.rank === 2) rankClass = 'rank-2';
-                    if (q.rank === 3) rankClass = 'rank-3';
+                    // 4. Fill Quote Table
+                    const tbody = document.getElementById("quotes-body");
+                    tbody.innerHTML = ""; // Clear existing
 
-                    const row = `
-                        <tr>
-                            <td><span class="rank-badge ${rankClass}">${q.rank}</span></td>
-                            <td>${q.supplier}</td>
-                            <td>${q.date}</td>
-                            <td>${q.qty}</td>
-                            <td class="col-currency">$${q.price.toFixed(2)}</td>
-                            <td class="col-currency col-total">$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                            <td>${q.lead}</td>
-                            <td><a href="#">View</a></td>
-                            <td>${q.notes}</td>
-                            <td>${q.cog}</td>
-                            <td>${q.valid}</td>
-                            <td class="col-center"><input type="checkbox" disabled></td>
-                            <td class="col-center"><input type="checkbox" disabled></td>
-                            <td class="col-center"><input type="checkbox" disabled></td>
-                            <td class="col-center"><input type="checkbox" disabled></td>
-                            <td class="col-center"><input type="checkbox" disabled></td>
-                            <td>${q.sos}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            } else {
-                document.querySelector(".part-header-card").innerHTML = `<h3>Part Number "${targetPart}" not found in database.</h3>`;
+                    if (data.quotes && data.quotes.length > 0) {
+                        // Sort quotes by rank
+                        const sortedQuotes = data.quotes.sort((a, b) => a.rank - b.rank);
+
+                        sortedQuotes.forEach(q => {
+                            const total = q.qty * q.price;
+                            
+                            // Determine badge color
+                            let rankClass = 'rank-other';
+                            if (q.rank == 1) rankClass = 'rank-1';
+                            if (q.rank == 2) rankClass = 'rank-2';
+                            if (q.rank == 3) rankClass = 'rank-3';
+
+                            const row = `
+                                <tr>
+                                    <td><span class="rank-badge ${rankClass}">${q.rank}</span></td>
+                                    <td>${q.supplier}</td>
+                                    <td>${q.date}</td>
+                                    <td>${q.qty}</td>
+                                    <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
+                                    <td class="col-currency col-total">$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    <td>${q.lead}</td>
+                                    <td>${q.valid || '-'}</td>
+                                    <td>${q.notes || ''}</td>
+                                </tr>
+                            `;
+                            tbody.innerHTML += row;
+                        });
+                    } else {
+                        tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding:15px;'>No quotes added yet. Use the '+ Add Quote' button on the dashboard.</td></tr>";
+                    }
+
+                } else {
+                    document.querySelector(".part-header-card").innerHTML = `<h3>Part Number "${targetPart}" not found in database.</h3>`;
+                }
+            } catch (err) {
+                console.error(err);
+                document.querySelector(".part-header-card").innerHTML = `<h3>Error loading data: ${err.message}</h3>`;
             }
         });
     </script>
