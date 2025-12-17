@@ -1,7 +1,7 @@
 // 1. IMPORT FROM WEB (CDN) LINKS
-// Added: updateDoc, arrayUnion
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, updateDoc, arrayUnion, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// Added 'addDoc' to the list below
+import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, arrayUnion, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // 2. YOUR CONFIGURATION
 const firebaseConfig = {
@@ -19,5 +19,5 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // 4. EXPORT TOOLS
-// Added: updateDoc, arrayUnion
-export { db, collection, doc, setDoc, updateDoc, arrayUnion, getDoc, getDocs, query, where, limit };
+// Added 'addDoc' here too
+export { db, collection, doc, setDoc, addDoc, updateDoc, arrayUnion, getDoc, getDocs, query, where, limit };

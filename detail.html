@@ -94,6 +94,13 @@
     </div>
 
     <script type="module">
+
+        // --- SECURITY CHECK ---
+if (!sessionStorage.getItem("austal_user")) {
+    window.location.href = "login.html";
+}
+// ----------------------
+
         import { db, doc, getDoc } from './firebase-config.js';
 
         document.addEventListener("DOMContentLoaded", async () => {

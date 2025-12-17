@@ -93,6 +93,13 @@
     </div>
 
     <script type="module">
+
+        // --- SECURITY CHECK ---
+if (!sessionStorage.getItem("austal_user")) {
+    window.location.href = "login.html";
+}
+// ----------------------
+
         import { db, doc, updateDoc, arrayUnion, getDoc, setDoc } from './firebase-config.js';
 
         // Check for URL param (e.g. ?part=VAL-123) to pre-fill

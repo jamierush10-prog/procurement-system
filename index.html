@@ -90,6 +90,13 @@
     </div>
 
     <script type="module">
+
+        // --- SECURITY CHECK ---
+if (!sessionStorage.getItem("austal_user")) {
+    window.location.href = "login.html";
+}
+// ----------------------
+
         import { db, collection, getDocs, query, where, limit } from './firebase-config.js';
 
         const tbody = document.getElementById('tableBody');
