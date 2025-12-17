@@ -1,8 +1,9 @@
 // 1. IMPORT FROM WEB (CDN) LINKS
+// Added: updateDoc, arrayUnion
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, updateDoc, arrayUnion, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 2. YOUR CONFIGURATION (I copied these from your screenshot)
+// 2. YOUR CONFIGURATION
 const firebaseConfig = {
   apiKey: "AIzaSyCXetXeuaWJRg3PM7vXJZnRuJDfq8ldT1Tc",
   authDomain: "procurement-app-869b8.firebaseapp.com",
@@ -17,5 +18,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 4. EXPORT TOOLS (This makes them available to your other HTML pages)
-export { db, collection, doc, setDoc, getDoc, getDocs, query, where, limit };
+// 4. EXPORT TOOLS
+// Added: updateDoc, arrayUnion
+export { db, collection, doc, setDoc, updateDoc, arrayUnion, getDoc, getDocs, query, where, limit };

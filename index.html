@@ -12,8 +12,20 @@
         h2 { color: #0056b3; margin: 0; }
         
         /* Buttons */
-        .btn-add { background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; transition: background 0.3s; }
-        .btn-add:hover { background-color: #218838; }
+        .btn-add { 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 14px; 
+            transition: opacity 0.3s; 
+            color: white;
+            display: inline-block;
+        }
+        .btn-add:hover { opacity: 0.9; }
+        
+        .btn-green { background-color: #28a745; }
+        .btn-blue { background-color: #0056b3; margin-left: 10px; }
         
         .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
         .btn-search:hover { background-color: #004494; }
@@ -43,7 +55,10 @@
 
     <div class="header-container">
         <h2>☁️ Procurement Cloud Master</h2>
-        <a href="add-req.html" class="btn-add">+ Add Requisition</a>
+        <div>
+            <a href="add-req.html" class="btn-add btn-green">+ Add Requisition</a>
+            <a href="add-quote.html" class="btn-add btn-blue">+ Add Quote</a>
+        </div>
     </div>
 
     <div style="margin-bottom: 15px;">
@@ -131,7 +146,8 @@
                 // If quotes exist, find the one with rank 1. If not found, default to first in list.
                 let bestQuote = null;
                 if (data.quotes && data.quotes.length > 0) {
-                    bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes[0];
+                    // Try to find Rank 1, otherwise sort by rank and pick first
+                    bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
                 }
                 
                 // Calculate Total
@@ -143,7 +159,7 @@
                         <td><span class="req-badge">${data.reqId || '-'}</span></td>
                         <td><span class="hull-badge">${data.hull || '-'}</span></td>
                         <td>${data.desc || 'No Description'}</td>
-                        <td><span style="background:${bestQuote ? '#28a745':'#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
+                        <td><span style="background:${bestQuote ? (bestQuote.rank == 1 ? '#28a745' : '#ffc107') : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
                         <td>${bestQuote ? bestQuote.supplier : '-'}</td>
                         <td>${bestQuote ? bestQuote.date : '-'}</td>
                         <td>${bestQuote ? bestQuote.qty : '-'}</td>
