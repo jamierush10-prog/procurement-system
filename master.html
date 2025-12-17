@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cloud Quote Log</title>
+    <style>
+        /* (Use the same CSS from your previous Master.html) */
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f4f4f9; }
+        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 80vh; }
+        table { width: 100%; border-collapse: collapse; min-width: 1500px; white-space: nowrap; font-size: 14px; }
+        th { position: sticky; top: 0; background: #0056b3; color: white; padding: 12px; text-align: left; }
+        td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .search-box { padding: 10px; width: 300px; border: 1px solid #ccc; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <h2>☁️ Procurement Cloud Master</h2>
+    <input type="text" id="searchInput" class="search-box" placeholder="Search Part Number...">
+    <button onclick="searchData()">Search</button>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Part No</th><th>Desc</th><th>Req ID</th><th>Hull</th>
+                    <th>Best Supplier</th><th>Price</th><th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs, query, where, limit } from './firebase-config.js';
+
+        const tbody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+
+        // Load initial 20 records
+        async function loadInitial() {
+            tbody.innerHTML = "<tr><td colspan='7'>Loading from Cloud...</td></tr>";
+            
+            const q = query(collection(db, "parts"), limit(20));
+            const querySnapshot = await getDocs(q);
+            
+            renderTable(querySnapshot);
+        }
+
+        // Search Function
+        window.searchData = async () => {
+            const term = searchInput.value.trim();
+            if(!term) return loadInitial();
+
+            tbody.innerHTML = "<tr><td colspan='7'>Searching Cloud...</td></tr>";
+
+            // Firestore exact search (For partial search, we need a different trick, but this works for exact PartNo)
+            // Note: Firestore is case-sensitive by default.
+            const partRef = collection(db, "parts");
+            const q = query(partRef, where("partNo", "==", term));
+            
+            const querySnapshot = await getDocs(q);
+            renderTable(querySnapshot);
+        }
+
+        function renderTable(snapshot) {
+            tbody.innerHTML = "";
+            if(snapshot.empty) {
+                tbody.innerHTML = "<tr><td colspan='7'>No records found.</td></tr>";
+                return;
+            }
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                // Find rank 1 quote
+                const bestQuote = data.quotes ? data.quotes.find(q => q.rank == 1) : null;
+                const total = bestQuote ? (bestQuote.qty * bestQuote.price) : 0;
+
+                const row = `
+                    <tr>
+                        <td><b>${data.partNo}</b></td>
+                        <td>${data.desc}</td>
+                        <td>${data.reqId || '-'}</td>
+                        <td>${data.hull || '-'}</td>
+                        <td>${bestQuote ? bestQuote.supplier : 'No Quote'}</td>
+                        <td>${bestQuote ? '$'+bestQuote.price : '-'}</td>
+                        <td>${bestQuote ? '$'+total.toLocaleString() : '-'}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        loadInitial();
+    </script>
+</body>
+</html>

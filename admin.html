@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Admin - Data Generator (Debug Mode)</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f4f9; text-align: center; }
+        .drop-zone {
+            border: 3px dashed #0056b3; padding: 40px; background: white; width: 60%; margin: 0 auto;
+            border-radius: 10px; cursor: pointer;
+        }
+        .drop-zone:hover { background: #e8f4ff; }
+        
+        /* Debug Log Styling */
+        #log {
+            margin-top: 20px; text-align: left; background: #333; color: #0f0; 
+            padding: 15px; border-radius: 5px; font-family: monospace; 
+            height: 300px; overflow-y: scroll; width: 80%; margin-left: auto; margin-right: auto;
+            display: none; /* Hidden until file dropped */
+        }
+        .log-error { color: #ff4444; font-weight: bold; }
+        .log-warn { color: #ffbb33; }
+        .log-success { color: #00C851; font-weight: bold; }
+        
+        .btn {
+            background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none;
+            font-size: 18px; border-radius: 5px; display: none; margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <h1>System Admin - Debug Mode</h1>
+    <p>Upload <b>Procurement_Master.xlsx</b> to diagnose the issue.</p>
+
+    <div class="drop-zone" id="dropZone">
+        <p>Drag & Drop Excel File Here</p>
+        <input type="file" id="fileInput" style="display:none" accept=".xlsx, .xls">
+    </div>
+
+    <div id="log"></div>
+    <a id="downloadBtn" class="btn">Download Corrected data.js</a>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const logBox = document.getElementById('log');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // Logging Helper
+        function log(msg, type = "info") {
+            logBox.style.display = "block";
+            const p = document.createElement("div");
+            p.textContent = `> ${msg}`;
+            if (type === "error") p.className = "log-error";
+            if (type === "warn") p.className = "log-warn";
+            if (type === "success") p.className = "log-success";
+            logBox.appendChild(p);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Drag & Drop Handlers
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = '#e8f4ff'; };
+        dropZone.ondragleave = () => dropZone.style.background = 'white';
+        dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        function handleFile(file) {
+            if (!file) return;
+            logBox.innerHTML = ""; // Clear previous log
+            log(`Reading file: ${file.name}...`);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // 1. CHECK SHEET NAMES
+                    const sheetNames = workbook.SheetNames;
+                    log(`Sheets found in Excel: [ ${sheetNames.join(", ")} ]`);
+
+                    if (!sheetNames.includes("Requisitions")) {
+                        log("CRITICAL ERROR: Sheet 'Requisitions' not found!", "error");
+                        log("Did you name it 'Requisition' (singular) or 'Sheet1'?", "warn");
+                        return;
+                    }
+                    if (!sheetNames.includes("Quotes")) {
+                        log("CRITICAL ERROR: Sheet 'Quotes' not found!", "error");
+                        return;
+                    }
+
+                    // 2. DIAGNOSE REQUISITIONS
+                    log("--- Processing 'Requisitions' Sheet ---");
+                    const reqSheet = workbook.Sheets['Requisitions'];
+                    const rawReqs = XLSX.utils.sheet_to_json(reqSheet);
+                    
+                    if (rawReqs.length === 0) {
+                        log("ERROR: 'Requisitions' sheet appears empty.", "error");
+                        return;
+                    }
+
+                    // Check Headers of first row
+                    const reqHeaders = Object.keys(rawReqs[0]);
+                    log(`Found Headers: [ ${reqHeaders.join(", ")} ]`);
+
+                    if (!reqHeaders.includes("PartNo")) {
+                        log("ERROR: Column 'PartNo' missing in Requisitions tab!", "error");
+                        log("We found: " + reqHeaders.join(", "), "warn");
+                        return;
+                    }
+                    if (!reqHeaders.includes("ReqID")) log("Warning: Column 'ReqID' missing. Will use '-'.", "warn");
+                    if (!reqHeaders.includes("Hull")) log("Warning: Column 'Hull' missing. Will use '-'.", "warn");
+
+                    // Build Req Map
+                    const reqMap = {};
+                    let reqCount = 0;
+                    rawReqs.forEach((row, index) => {
+                        if (!row.PartNo) {
+                            log(`Skipping Row ${index + 2}: Missing PartNo`, "warn");
+                            return;
+                        }
+                        const part = row.PartNo.toString().trim();
+                        reqMap[part] = {
+                            partNo: part,
+                            desc: row.Description || "No Description",
+                            reqId: row.ReqID || "-",
+                            hull: row.Hull || "-",
+                            qtyReq: row.QtyRequired || 0,
+                            uom: row.UOM || "EA",
+                            status: row.Status || "Open",
+                            nsn: row.NSN || "-",      
+                            mfg: row.MFG || "-",
+                            spmig: row.SPMIG || "-"
+                        };
+                        reqCount++;
+                    });
+                    log(`Successfully mapped ${reqCount} Requisition lines.`, "success");
+
+
+                    // 3. DIAGNOSE QUOTES
+                    log("--- Processing 'Quotes' Sheet ---");
+                    const quoteSheet = workbook.Sheets['Quotes'];
+                    const rawQuotes = XLSX.utils.sheet_to_json(quoteSheet);
+                    
+                    // Merge logic
+                    const finalPartsMap = { ...reqMap };
+                    Object.keys(finalPartsMap).forEach(key => finalPartsMap[key].quotes = []);
+                    
+                    let quoteCount = 0;
+                    rawQuotes.forEach(q => {
+                        if(!q.PartNo) return; 
+                        const partKey = q.PartNo.toString().trim();
+                        
+                        // Handle historical parts
+                        if (!finalPartsMap[partKey]) {
+                            finalPartsMap[partKey] = {
+                                partNo: partKey,
+                                desc: q.Description || "Historical Part",
+                                reqId: q.AssociatedID || "HISTORY",
+                                hull: "-",
+                                quotes: []
+                            };
+                            // Only log this once to avoid spamming
+                            if(quoteCount === 0) log("Found parts in Quotes that are not in Requisitions (Historical). Adding them...", "info");
+                        }
+
+                        finalPartsMap[partKey].quotes.push({
+                            rank: q.Rank || 99,
+                            supplier: q.Supplier || "Unknown",
+                            date: q.QuoteDate || "-",
+                            qty: q.QTY || 0,
+                            price: q.Price || 0,
+                            lead: q.LeadTime || "-",
+                            notes: q.Notes || "",
+                            valid: q.Valid || "-",
+                            sos: q.SOS || "-"
+                        });
+                        quoteCount++;
+                    });
+                    
+                    log(`Successfully merged ${quoteCount} Quotes.`, "success");
+
+                    // 4. GENERATE
+                    const partsArray = Object.values(finalPartsMap);
+                    const dbObject = { generatedDate: new Date().toLocaleDateString(), parts: partsArray };
+                    const fileContent = "const PROCUREMENT_DB = " + JSON.stringify(dbObject, null, 4) + ";";
+                    const blob = new Blob([fileContent], { type: 'text/javascript' });
+                    
+                    downloadBtn.href = URL.createObjectURL(blob);
+                    downloadBtn.download = "data.js";
+                    downloadBtn.style.display = "inline-block";
+                    log("READY: Click the green button to download.", "success");
+
+                } catch (err) {
+                    log("SYSTEM ERROR: " + err.message, "error");
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>

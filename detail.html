@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part Detail</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        
+        .nav-link { display: inline-block; margin-bottom: 20px; color: #0056b3; text-decoration: none; font-weight: bold; font-size: 14px; }
+        .nav-link:hover { text-decoration: underline; }
+
+        /* Top Card: Part Specs */
+        .part-header-card {
+            background: white; padding: 25px; border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px;
+            border-left: 6px solid #0056b3;
+        }
+        .part-title-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .part-title { margin: 0; color: #0056b3; font-size: 1.8em; }
+        .req-tag { background: #e9ecef; color: #495057; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+
+        .specs-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;
+        }
+        .spec-box { background: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; }
+        .spec-label { display: block; font-size: 0.75em; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
+        .spec-value { font-weight: 600; font-size: 1.1em; color: #212529; }
+
+        /* Table Style */
+        h3 { color: #333; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; display: inline-block; width: 100%; }
+        
+        .table-container {
+            width: 100%; overflow-x: auto; box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background: #fff; border-radius: 8px; padding-bottom: 5px;
+        }
+        
+        /* Scrollbar */
+        .table-container::-webkit-scrollbar { height: 12px; }
+        .table-container::-webkit-scrollbar-track { background: #e0e0e0; }
+        .table-container::-webkit-scrollbar-thumb { background-color: #0056b3; border-radius: 8px; border: 2px solid #e0e0e0; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 2200px; font-size: 14px; white-space: nowrap; }
+        thead tr { background-color: #0056b3; color: white; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #dddddd; }
+        th { position: sticky; top: 0; background-color: #0056b3; z-index: 10; }
+        
+        /* Helper Classes */
+        .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
+        .col-total { background-color: #e8f4ff; color: #0056b3; font-weight: bold; border-left: 2px solid #ccc; border-right: 2px solid #ccc; }
+        .col-center { text-align: center; }
+
+        /* Rank Colors */
+        .rank-badge { padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; }
+        .rank-1 { background-color: #28a745; } /* Green */
+        .rank-2 { background-color: #ffc107; color: #333; } /* Yellow */
+        .rank-3 { background-color: #dc3545; } /* Red */
+        .rank-other { background-color: #6c757d; } /* Grey */
+
+        input[type="checkbox"] { transform: scale(1.2); cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <a href="master.html" class="nav-link">&#8592; Back to Master Quote Log</a>
+
+    <div class="part-header-card">
+        <div class="part-title-row">
+            <h2 class="part-title" id="display-part-no">Loading...</h2>
+            <span class="req-tag" id="d-req">REQ: -</span>
+        </div>
+        
+        <div class="specs-grid">
+            <div class="spec-box"><span class="spec-label">Description</span><span class="spec-value" id="d-desc">-</span></div>
+            <div class="spec-box"><span class="spec-label">NSN</span><span class="spec-value" id="d-nsn">-</span></div>
+            <div class="spec-box"><span class="spec-label">MFG Part No</span><span class="spec-value" id="d-mfg">-</span></div>
+            <div class="spec-box"><span class="spec-label">SPMIG</span><span class="spec-value" id="d-spmig">-</span></div>
+            <div class="spec-box"><span class="spec-label">UOM</span><span class="spec-value" id="d-uom">-</span></div>
+        </div>
+    </div>
+
+    <h3>Quote History</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Supplier</th>
+                    <th>Quote Date</th>
+                    <th>QTY</th>
+                    <th>Price (USD)</th>
+                    <th>Total (USD)</th>
+                    <th>Lead Time</th>
+                    <th>File</th>
+                    <th>Notes</th>
+                    <th>COG</th>
+                    <th>Validity</th>
+                    <th class="col-center">Direct</th>
+                    <th class="col-center">Guam</th>
+                    <th class="col-center">Bahrain</th>
+                    <th class="col-center">Japan</th>
+                    <th class="col-center">Other</th>
+                    <th>SOS</th>
+                </tr>
+            </thead>
+            <tbody id="quotes-body">
+                </tbody>
+        </table>
+    </div>
+
+    <script src="data.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // 1. Get Part Number from URL
+            const params = new URLSearchParams(window.location.search);
+            const targetPart = params.get('part');
+
+            if (!targetPart) {
+                document.querySelector(".part-header-card").innerHTML = "<h3>Error: No Part Number selected.</h3>";
+                return;
+            }
+
+            // 2. Find Data in PROCUREMENT_DB.parts
+            const data = PROCUREMENT_DB.parts.find(item => item.partNo === targetPart);
+
+            if (data) {
+                // 3. Fill Top Header
+                document.getElementById("display-part-no").textContent = data.partNo;
+                document.getElementById("d-req").textContent = "REQ: " + (data.associatedReq || "N/A");
+                document.getElementById("d-desc").textContent = data.desc;
+                document.getElementById("d-nsn").textContent = data.nsn;
+                document.getElementById("d-mfg").textContent = data.mfg;
+                document.getElementById("d-spmig").textContent = data.spmig;
+                document.getElementById("d-uom").textContent = data.uom;
+
+                // 4. Fill Quote Table
+                const tbody = document.getElementById("quotes-body");
+                
+                // Sort quotes by rank just in case they aren't sorted in the file
+                const sortedQuotes = data.quotes.sort((a, b) => a.rank - b.rank);
+
+                sortedQuotes.forEach(q => {
+                    const total = q.qty * q.price;
+                    
+                    // Determine badge color
+                    let rankClass = 'rank-other';
+                    if (q.rank === 1) rankClass = 'rank-1';
+                    if (q.rank === 2) rankClass = 'rank-2';
+                    if (q.rank === 3) rankClass = 'rank-3';
+
+                    const row = `
+                        <tr>
+                            <td><span class="rank-badge ${rankClass}">${q.rank}</span></td>
+                            <td>${q.supplier}</td>
+                            <td>${q.date}</td>
+                            <td>${q.qty}</td>
+                            <td class="col-currency">$${q.price.toFixed(2)}</td>
+                            <td class="col-currency col-total">$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td>${q.lead}</td>
+                            <td><a href="#">View</a></td>
+                            <td>${q.notes}</td>
+                            <td>${q.cog}</td>
+                            <td>${q.valid}</td>
+                            <td class="col-center"><input type="checkbox" disabled></td>
+                            <td class="col-center"><input type="checkbox" disabled></td>
+                            <td class="col-center"><input type="checkbox" disabled></td>
+                            <td class="col-center"><input type="checkbox" disabled></td>
+                            <td class="col-center"><input type="checkbox" disabled></td>
+                            <td>${q.sos}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                document.querySelector(".part-header-card").innerHTML = `<h3>Part Number "${targetPart}" not found in database.</h3>`;
+            }
+        });
+    </script>
+</body>
+</html>

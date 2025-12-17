@@ -1,0 +1,10 @@
+# Ignore Excel temporary lock files
+~$*
+*.tmp
+
+# Ignore the actual Data files (Keep these on OneDrive/Local)
+*.xlsx
+*.xls
+
+# Ignore Mac/System junk
+.DS_Store

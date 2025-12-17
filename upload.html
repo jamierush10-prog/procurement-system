@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Migration Tool: Excel to Firebase</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #222; color: #fff; text-align: center; }
+        .drop-zone { border: 3px dashed #444; padding: 50px; background: #333; margin: 0 auto; width: 50%; border-radius: 10px; cursor: pointer; }
+        .drop-zone:hover { background: #444; border-color: #eba434; }
+        #log { margin-top: 20px; font-family: monospace; text-align: left; height: 300px; overflow-y: scroll; background: #000; padding: 20px; border: 1px solid #444; }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warning { color: #eba434; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <h1>🚀 Excel to Firebase Migration</h1>
+    <p>Drag 'Procurement_Master.xlsx' here to upload 15,000 records to the cloud.</p>
+
+    <div class="drop-zone" id="dropZone">Drop File Here</div>
+    <div id="log">Waiting for file...</div>
+    <input type="file" id="fileInput" style="display:none" accept=".xlsx">
+
+    <script type="module">
+        import { db, doc, setDoc, collection } from './firebase-config.js'; // Import your config
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const logBox = document.getElementById('log');
+
+        function log(msg, type="") {
+            const div = document.createElement("div");
+            div.textContent = `> ${msg}`;
+            if(type) div.classList.add(type);
+            logBox.prepend(div);
+        }
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = '#444'; };
+        dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        async function handleFile(file) {
+            log(`Reading ${file.name}...`);
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                if (!workbook.Sheets['Quotes']) return log("ERROR: No 'Quotes' sheet found.", "error");
+
+                const rawQuotes = XLSX.utils.sheet_to_json(workbook.Sheets['Quotes']);
+                log(`Found ${rawQuotes.length} quotes. Converting structure...`);
+
+                // 1. GROUP BY PART NUMBER (Same logic as before)
+                const partsMap = {};
+                
+                // (Optional: Load Requisitions first if you have them, mirroring previous logic)
+                // For brevity, we are processing Quotes directly to Part Records here
+                
+                rawQuotes.forEach(q => {
+                    if(!q.PartNo) return;
+                    const partKey = q.PartNo.toString().trim();
+                    
+                    if (!partsMap[partKey]) {
+                        partsMap[partKey] = {
+                            partNo: partKey,
+                            desc: q.Description || "Unknown",
+                            hull: q.Hull || "-", // Assuming Hull might be in quotes or merged previously
+                            reqId: q.ReqID || "HISTORY",
+                            quotes: []
+                        };
+                    }
+
+                    partsMap[partKey].quotes.push({
+                        rank: q.Rank || 99,
+                        supplier: q.Supplier || "Unknown",
+                        price: q.Price || 0,
+                        qty: q.QTY || 0,
+                        date: q.QuoteDate || "-",
+                        lead: q.LeadTime || "-"
+                    });
+                });
+
+                // 2. UPLOAD TO FIREBASE (BATCHED)
+                const parts = Object.values(partsMap);
+                log(`Prepared ${parts.length} unique parts. Starting Upload...`, "warning");
+
+                let successCount = 0;
+                
+                // Firestore writes take time. We loop through and upload.
+                // In a real production app we'd use Batch Writes, but for this tool, one-by-one is safer to monitor.
+                for (const part of parts) {
+                    try {
+                        // We use setDoc with merge:true so we don't overwrite existing data accidentally
+                        await setDoc(doc(db, "parts", part.partNo), part, { merge: true });
+                        successCount++;
+                        if(successCount % 50 === 0) log(`Uploaded ${successCount} records...`);
+                    } catch (err) {
+                        log(`Error uploading ${part.partNo}: ${err.message}`, "error");
+                    }
+                }
+
+                log(`✅ DONE! Successfully uploaded ${successCount} records to Cloud.`, "success");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
