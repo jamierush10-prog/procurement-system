@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Requisition Line</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f4f9; display: flex; justify-content: center; padding-top: 50px; }
+        
+        .card {
+            background: white; width: 500px; padding: 30px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        h2 { color: #0056b3; margin-top: 0; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; color: #333; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        .btn { width: 100%; padding: 12px; border: none; background: #28a745; color: white; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        .btn:hover { background: #218838; }
+        
+        .back-link { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+
+        /* Status Messages */
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; text-align: center; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>➕ Add Requisition Line</h2>
+
+        <div class="form-group">
+            <label>Part Number (Required)</label>
+            <input type="text" id="partNo" placeholder="e.g. VAL-992-X" oninput="this.value = this.value.toUpperCase().trim()">
+        </div>
+
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="desc" placeholder="Part Description">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="width: 50%;">
+                <label>Req ID</label>
+                <input type="text" id="reqId" placeholder="REQ-2025-001">
+            </div>
+            <div class="form-group" style="width: 50%;">
+                <label>Hull / Project</label>
+                <input type="text" id="hull" placeholder="LCS-38">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="width: 50%;">
+                <label>Qty Required</label>
+                <input type="number" id="qty" value="1">
+            </div>
+            <div class="form-group" style="width: 50%;">
+                <label>UOM</label>
+                <select id="uom">
+                    <option>EA</option><option>FT</option><option>SET</option><option>BX</option><option>KG</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn" onclick="saveReq()">Save to Cloud</button>
+        <div id="status"></div>
+
+        <a href="index.html" class="back-link">&#8592; Back to Master List</a>
+    </div>
+
+    <script type="module">
+        import { db, doc, setDoc, getDoc } from './firebase-config.js';
+
+        window.saveReq = async () => {
+            const partNo = document.getElementById('partNo').value;
+            const statusBox = document.getElementById('status');
+            
+            // 1. Validation
+            if (!partNo) {
+                showStatus("Error: Part Number is required.", "error");
+                return;
+            }
+
+            statusBox.style.display = 'none';
+
+            // 2. Prepare Data
+            const reqData = {
+                partNo: partNo,
+                desc: document.getElementById('desc').value,
+                reqId: document.getElementById('reqId').value,
+                hull: document.getElementById('hull').value,
+                qtyReq: Number(document.getElementById('qty').value),
+                uom: document.getElementById('uom').value,
+                status: "Open", // Default status for new reqs
+                lastUpdated: new Date().toISOString()
+            };
+
+            try {
+                // 3. WRITE TO FIREBASE
+                // { merge: true } is vital! It ensures we don't delete existing quotes.
+                const docRef = doc(db, "parts", partNo);
+                
+                // Optional: Check if it exists first to preserve description if user left it blank
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && !reqData.desc) {
+                   delete reqData.desc; // Don't overwrite existing description with blank
+                }
+
+                await setDoc(docRef, reqData, { merge: true });
+
+                showStatus(`✅ Success! Saved ${partNo} to database.`, "success");
+                clearForm();
+
+            } catch (err) {
+                console.error(err);
+                showStatus("Error: " + err.message, "error");
+            }
+        };
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = type;
+            el.style.display = 'block';
+        }
+
+        function clearForm() {
+            document.getElementById('partNo').value = "";
+            document.getElementById('desc').value = "";
+            document.getElementById('qty').value = "1";
+        }
+    </script>
+</body>
+</html>
