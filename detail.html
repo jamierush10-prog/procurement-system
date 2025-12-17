@@ -17,40 +17,38 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px;
             border-left: 6px solid #0056b3;
         }
-        .part-title-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        .part-title { margin: 0; color: #0056b3; font-size: 1.8em; }
-        .req-tag { background: #e9ecef; color: #495057; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
-
-        .specs-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;
-        }
-        .spec-box { background: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; }
-        .spec-label { display: block; font-size: 0.75em; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
-        .spec-value { font-weight: 600; font-size: 1.1em; color: #212529; }
-
-        /* Table Style */
-        h3 { color: #333; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; display: inline-block; width: 100%; }
+        .part-title { margin: 0; color: #0056b3; font-size: 1.8em; margin-bottom: 15px; }
         
+        /* Specs Grid */
+        .specs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .spec-box { background: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #e9ecef; }
+        .spec-label { display: block; font-size: 0.8em; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
+        .spec-value { font-weight: 600; font-size: 1.2em; color: #212529; }
+
+        /* Table Headers */
+        h3 { color: #333; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        
+        /* Tables */
         .table-container {
-            width: 100%; overflow-x: auto; box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            background: #fff; border-radius: 8px; padding-bottom: 5px;
+            width: 100%; overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: #fff; border-radius: 8px;
         }
         
-        table { width: 100%; border-collapse: collapse; min-width: 1200px; font-size: 14px; white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 14px; }
         thead tr { background-color: #0056b3; color: white; text-align: left; }
         th, td { padding: 12px 15px; border-bottom: 1px solid #dddddd; }
-        th { position: sticky; top: 0; background-color: #0056b3; z-index: 10; }
+        tbody tr:hover { background-color: #f1f1f1; }
         
-        /* Helper Classes */
+        /* Badges & Helpers */
         .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
-        .col-total { background-color: #e8f4ff; color: #0056b3; font-weight: bold; }
+        .req-tag { background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        .hull-badge { background: #17a2b8; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
         
         /* Rank Colors */
         .rank-badge { padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; }
-        .rank-1 { background-color: #28a745; } /* Green */
-        .rank-2 { background-color: #ffc107; color: #333; } /* Yellow */
-        .rank-3 { background-color: #dc3545; } /* Red */
-        .rank-other { background-color: #6c757d; } /* Grey */
+        .rank-1 { background-color: #28a745; } 
+        .rank-2 { background-color: #ffc107; color: #333; }
+        .rank-other { background-color: #6c757d; }
     </style>
 </head>
 <body>
@@ -58,21 +56,37 @@
     <a href="index.html" class="nav-link">&#8592; Back to Master List</a>
 
     <div class="part-header-card">
-        <div class="part-title-row">
-            <h2 class="part-title" id="display-part-no">Loading...</h2>
-            <span class="req-tag" id="d-req">REQ: -</span>
-        </div>
-        
+        <h2 class="part-title" id="display-part-no">Loading...</h2>
         <div class="specs-grid">
-            <div class="spec-box"><span class="spec-label">Description</span><span class="spec-value" id="d-desc">-</span></div>
-            <div class="spec-box"><span class="spec-label">Hull / Project</span><span class="spec-value" id="d-hull">-</span></div>
-            <div class="spec-box"><span class="spec-label">Qty Required</span><span class="spec-value" id="d-qty">-</span></div>
-            <div class="spec-box"><span class="spec-label">UOM</span><span class="spec-value" id="d-uom">-</span></div>
-            <div class="spec-box"><span class="spec-label">Status</span><span class="spec-value" id="d-status">-</span></div>
+            <div class="spec-box">
+                <span class="spec-label">Description</span>
+                <span class="spec-value" id="d-desc">-</span>
+            </div>
+            <div class="spec-box">
+                <span class="spec-label">Active Projects</span>
+                <span class="spec-value" id="d-count">0</span>
+            </div>
         </div>
     </div>
 
-    <h3>Quote History</h3>
+    <h3>📋 Demand (Requisitions)</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Hull / Project</th>
+                    <th>Qty Required</th>
+                    <th>UOM</th>
+                    <th>Status</th>
+                    <th>Date Added</th>
+                </tr>
+            </thead>
+            <tbody id="reqs-body"></tbody>
+        </table>
+    </div>
+
+    <h3>💰 Supply (Quotes)</h3>
     <div class="table-container">
         <table>
             <thead>
@@ -80,98 +94,101 @@
                     <th>Rank</th>
                     <th>Supplier</th>
                     <th>Quote Date</th>
-                    <th>Qty Quoted</th>
                     <th>Price (USD)</th>
-                    <th>Total (USD)</th>
                     <th>Lead Time</th>
                     <th>Validity</th>
                     <th>Notes</th>
                 </tr>
             </thead>
-            <tbody id="quotes-body">
-                </tbody>
+            <tbody id="quotes-body"></tbody>
         </table>
     </div>
 
     <script type="module">
-
-        // --- SECURITY CHECK ---
-if (!sessionStorage.getItem("austal_user")) {
-    window.location.href = "login.html";
-}
-// ----------------------
-
         import { db, doc, getDoc } from './firebase-config.js';
 
+        // --- SECURITY CHECK ---
+        if (!sessionStorage.getItem("austal_user")) {
+            window.location.href = "login.html";
+        }
+
         document.addEventListener("DOMContentLoaded", async () => {
-            // 1. Get Part Number from URL
             const params = new URLSearchParams(window.location.search);
             const targetPart = params.get('part');
 
             if (!targetPart) {
-                document.querySelector(".part-header-card").innerHTML = "<h3>Error: No Part Number selected.</h3>";
+                document.getElementById("display-part-no").textContent = "Error: No Part Selected";
                 return;
             }
 
-            // 2. Fetch from Firebase
             try {
                 const docRef = doc(db, "parts", targetPart);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-
-                    // 3. Fill Top Header
+                    
+                    // 1. FILL HEADER
                     document.getElementById("display-part-no").textContent = data.partNo;
-                    document.getElementById("d-req").textContent = "REQ: " + (data.reqId || "N/A");
-                    document.getElementById("d-desc").textContent = data.desc || "-";
-                    document.getElementById("d-hull").textContent = data.hull || "-";
-                    document.getElementById("d-qty").textContent = data.qtyReq || "-";
-                    document.getElementById("d-uom").textContent = data.uom || "-";
-                    document.getElementById("d-status").textContent = data.status || "Open";
+                    document.getElementById("d-desc").textContent = data.desc || "No Description";
+                    
+                    const reqCount = data.requisitions ? data.requisitions.length : 0;
+                    document.getElementById("d-count").textContent = reqCount;
 
-                    // 4. Fill Quote Table
-                    const tbody = document.getElementById("quotes-body");
-                    tbody.innerHTML = ""; // Clear existing
+                    // 2. FILL REQUISITIONS TABLE (Correct Place for Hull/Qty/UOM)
+                    const reqBody = document.getElementById("reqs-body");
+                    reqBody.innerHTML = "";
+
+                    if (reqCount > 0) {
+                        data.requisitions.forEach(r => {
+                            reqBody.innerHTML += `
+                                <tr>
+                                    <td><span class="req-tag">${r.reqId}</span></td>
+                                    <td><span class="hull-badge">${r.hull}</span></td>
+                                    <td><b style="font-size:1.1em">${r.qtyReq}</b></td>
+                                    <td>${r.uom || 'EA'}</td>
+                                    <td>${r.status || 'Open'}</td>
+                                    <td>${r.dateAdded ? r.dateAdded.split('T')[0] : '-'}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        reqBody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:#666;'>No active requisitions.</td></tr>";
+                    }
+
+                    // 3. FILL QUOTES TABLE
+                    const quoteBody = document.getElementById("quotes-body");
+                    quoteBody.innerHTML = "";
 
                     if (data.quotes && data.quotes.length > 0) {
-                        // Sort quotes by rank
                         const sortedQuotes = data.quotes.sort((a, b) => a.rank - b.rank);
-
                         sortedQuotes.forEach(q => {
-                            const total = q.qty * q.price;
-                            
-                            // Determine badge color
                             let rankClass = 'rank-other';
                             if (q.rank == 1) rankClass = 'rank-1';
                             if (q.rank == 2) rankClass = 'rank-2';
-                            if (q.rank == 3) rankClass = 'rank-3';
 
-                            const row = `
+                            quoteBody.innerHTML += `
                                 <tr>
                                     <td><span class="rank-badge ${rankClass}">${q.rank}</span></td>
                                     <td>${q.supplier}</td>
                                     <td>${q.date}</td>
-                                    <td>${q.qty}</td>
                                     <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
-                                    <td class="col-currency col-total">$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                                     <td>${q.lead}</td>
                                     <td>${q.valid || '-'}</td>
                                     <td>${q.notes || ''}</td>
                                 </tr>
                             `;
-                            tbody.innerHTML += row;
                         });
                     } else {
-                        tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding:15px;'>No quotes added yet. Use the '+ Add Quote' button on the dashboard.</td></tr>";
+                        quoteBody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:20px; color:#666;'>No quotes added yet.</td></tr>";
                     }
 
                 } else {
-                    document.querySelector(".part-header-card").innerHTML = `<h3>Part Number "${targetPart}" not found in database.</h3>`;
+                    document.getElementById("display-part-no").textContent = "Part Not Found";
                 }
             } catch (err) {
                 console.error(err);
-                document.querySelector(".part-header-card").innerHTML = `<h3>Error loading data: ${err.message}</h3>`;
+                alert("Error loading details: " + err.message);
             }
         });
     </script>
