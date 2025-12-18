@@ -7,47 +7,57 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
         
-        /* Header & Layout */
+        /* Header Layout */
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h2 { color: #0056b3; margin: 0; }
+        h2 { color: #0056b3; margin: 0; display: flex; align-items: center; }
         
         /* Buttons */
-        .btn-add { padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; color: white; display: inline-block; margin-left: 10px; cursor: pointer; border: none; }
-        .btn-grey { background-color: #555; } .btn-green { background-color: #28a745; } .btn-purple { background-color: #6f42c1; } .btn-blue { background-color: #0056b3; } .btn-orange { background-color: #fd7e14; }
-        .btn-red { background-color: #dc3545; }
+        .btn-add { 
+            padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; 
+            transition: opacity 0.3s; color: white; display: inline-block; margin-left: 10px; cursor: pointer; border: none;
+        }
+        .btn-add:hover { opacity: 0.9; }
+        
+        .btn-grey   { background-color: #555; }       
+        .btn-green  { background-color: #28a745; }    
+        .btn-purple { background-color: #6f42c1; }    
+        .btn-blue   { background-color: #0056b3; }    
+        .btn-orange { background-color: #fd7e14; }    
+        .btn-red    { background-color: #dc3545; }
         
         .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
+        .btn-search:hover { background-color: #004494; }
+
         .btn-icon { padding: 5px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
         .btn-icon:hover { background: #eee; }
         .btn-del:hover { background: #ffe6e6; border-color: #ffcccc; color: red; }
 
-        /* Status Bar */
-        #statusBar { 
-            background: #333; color: #0f0; padding: 15px; margin-bottom: 20px; 
-            border-radius: 4px; font-family: monospace; font-size: 13px; min-height: 20px; 
-            border-left: 5px solid #0f0; display: flex; justify-content: space-between; align-items: center;
-        }
-
-        /* Table */
-        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 70vh; }
+        /* Table Container */
+        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
+        
         table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 13px; }
         thead th { position: sticky; top: 0; background-color: #0056b3; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
         tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
         tbody tr:hover { background-color: #f1f1f1; }
 
+        /* Column Search Inputs */
         .col-search { width: 90%; padding: 4px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; color: #333; }
-        .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
+
+        a.part-link { color: #0056b3; font-weight: bold; text-decoration: underline; cursor: pointer; }
+        a.part-link:hover { color: #003366; }
+        
+        .col-currency { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
+        .hull-badge { color: #333; border: 1px solid rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .req-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; }
+        .buyer-badge { color: #333; border: 1px solid rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
+
+        /* Pagination Controls */
         .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
+        .page-info { font-weight: bold; color: #555; }
         .btn-nav { padding: 8px 16px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
 
-        /* Badges */
-        .hull-badge { color: #333; border: 1px solid #ddd; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
-        .req-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; }
-        .buyer-badge { color: #333; border: 1px solid #ddd; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
-        a.part-link { color: #0056b3; font-weight: bold; text-decoration: underline; cursor: pointer; }
-
-        /* Modals */
+        /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
@@ -56,26 +66,32 @@
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-        .detail-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
-        .detail-container { background: white; width: 90%; height: 90%; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
-        .detail-header { padding: 10px 15px; background: #eee; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-        .btn-close-detail { background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        /* Detail Popup */
+        .detail-overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; 
+        }
+        .detail-container { 
+            background: white; width: 90%; height: 90%; border-radius: 8px; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column;
+        }
+        .detail-header {
+            padding: 10px 15px; background: #eee; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-close-detail {
+            background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
         .detail-frame { flex: 1; width: 100%; border: none; }
     </style>
 </head>
 <body>
 
-    <script>
-        window.addEventListener( "pageshow", function ( event ) {
-            var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
-            if ( historyTraversal ) { window.location.reload(); }
-        });
-    </script>
-
     <div class="header-container">
-        <h2>Rush Procurement Base</h2>
+        <h2>
+            <img src="logo.png" alt="Logo" style="height: 40px; margin-right: 10px; vertical-align: middle;">
+            Rush Procurement Base
+        </h2>
         <div>
-            <button onclick="window.location.reload()" class="btn-search" style="background:#555;">Force Reload</button>
             <a href="quotes.html" class="btn-add btn-grey">🔍 Quote Search</a>
             <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
             <a href="batch-req.html" class="btn-add btn-purple">⚡ Batch Req</a>
@@ -84,16 +100,11 @@
         </div>
     </div>
 
-    <div id="statusBar">
-        <span id="statusText">Initializing System...</span>
-        <button onclick="stopScan()" id="btnStopScan" style="display:none; background:#dc3545; border:none; color:white; padding:2px 8px; cursor:pointer;">Stop Scan</button>
-    </div>
-
     <div style="margin-bottom: 15px; display: flex; align-items: center;">
-        <input type="text" id="searchInput" class="col-search" style="width:250px; margin:0;" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
-        <input type="text" id="buyerFilter" class="col-search" style="width:150px; margin:0 10px;" placeholder="Filter Buyer..." onkeyup="if(event.key === 'Enter') searchData()">
+        <input type="text" id="searchInput" class="search-box" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
+        <input type="text" id="buyerFilter" class="filter-box" placeholder="Filter Buyer (Initials)" onkeyup="if(event.key === 'Enter') searchData()">
         <button onclick="searchData()" class="btn-search">Search / Filter</button>
-        <button onclick="resetAll()" style="padding: 10px; border:none; background:none; text-decoration:underline; cursor:pointer;">Reset</button>
+        <button onclick="resetAll()" style="padding: 10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline; margin-left:10px;">Reset</button>
     </div>
 
     <div class="table-container">
@@ -101,51 +112,57 @@
             <thead>
                 <tr>
                     <th style="width: 100px; text-align: center;">
-                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" style="transform: scale(1.5);">
+                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" style="transform: scale(1.5); cursor: pointer;" title="Select All Filtered">
+                        <br><span style="font-size:10px; color:#ddd;">Select All</span>
                     </th>
-                    <th>Actions<br><button onclick="deleteSelected()" class="btn-red" style="font-size:10px; padding:2px 5px;">Delete</button></th>
-                    <th>Buyer<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Req ID<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Hull<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Description<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Supplier<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Date<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>QTY<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Price<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Total<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Budget<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>T-Budget<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Selected<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Delta<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Lead<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Actions<br>
+                        <button onclick="deleteSelected()" class="btn-red" style="font-size: 11px; padding: 4px 8px; border: none; border-radius: 3px; cursor: pointer; color: white;">🗑️ Delete Selected</button>
+                    </th>
+                    <th>Buyer<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Part No<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Req ID<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Hull<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Description<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Best Supplier<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Quote Date<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>QTY<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Price<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Total<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Budget<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>T-Budget<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Selected<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Delta<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Lead Time<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
+
     <div class="pagination" id="paginationControls"></div>
 
     <div class="modal-overlay" id="editModal">
         <div class="modal-card">
             <h3 class="modal-title">✏️ Modify Requisition</h3>
             <input type="hidden" id="edit_partNo">
+            
             <div class="form-group"><label>Req ID</label><input type="text" id="edit_reqId"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="form-group" style="width:50%"><label>Buyer (Initials)</label><input type="text" id="edit_buyer"></div>
                 <div class="form-group" style="width:50%"><label>Selected (Status)</label><input type="text" id="edit_selected"></div>
             </div>
             <div class="form-group"><label>Budget (Unit Price)</label><input type="number" id="edit_budget" step="0.01"></div>
-            <div class="form-group"><label>Hull</label><input type="text" id="edit_hull"></div>
+            <div class="form-group"><label>Hull / Project</label><input type="text" id="edit_hull"></div>
             <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="width:50%"><label>Qty</label><input type="number" id="edit_qty"></div>
+                <div class="form-group" style="width:50%"><label>Qty Required</label><input type="number" id="edit_qty"></div>
                 <div class="form-group" style="width:50%"><label>UOM</label><input type="text" id="edit_uom"></div>
             </div>
-            <div class="form-group"><label>Description</label><input type="text" id="edit_desc"></div>
+            <div class="form-group"><label>Description (Updates Main Part)</label><input type="text" id="edit_desc"></div>
+            
             <div class="modal-actions">
                 <button type="button" onclick="closeModal()" class="btn-add" style="background:#ccc; color:#333;">Cancel</button>
-                <button type="button" onclick="saveEdit()" class="btn-add btn-green">Save</button>
+                <button type="button" onclick="saveEdit()" class="btn-add btn-green">Save Changes</button>
             </div>
         </div>
     </div>
@@ -154,34 +171,29 @@
         <div class="detail-container">
             <div class="detail-header">
                 <strong>Part Details</strong>
-                <button onclick="closeDetailModal()" class="btn-close-detail">Close</button>
+                <button onclick="closeDetailModal()" class="btn-close-detail">Close & Refresh</button>
             </div>
             <iframe id="detailFrame" class="detail-frame" src=""></iframe>
         </div>
     </div>
 
     <script type="module">
-        import { db, collection, getDocs, getDoc, doc, updateDoc, query, where, limit, startAfter, orderBy } from './firebase-config.js';
+        import { db, collection, getDocs, getDoc, doc, updateDoc, deleteDoc, query, where, limit } from './firebase-config.js';
 
         // --- AUTH CHECK ---
-        const user = localStorage.getItem("austal_user") || sessionStorage.getItem("austal_user");
-        if (!user) window.location.href = "login.html";
+        if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
-        const statusText = document.getElementById('statusText');
         const paginationDiv = document.getElementById('paginationControls');
 
+        // --- GLOBAL STATE ---
         let flatTableData = []; 
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
-        let isScanning = false;
+        let isDataReady = false; // Prevents race conditions
 
-        function updateStatus(msg, color='#0f0') {
-            statusText.textContent = `> ${msg}`;
-            statusText.style.color = color;
-        }
-
+        // --- COLOR GENERATOR ---
         function getColorForString(str) {
             if (!str) return '#e9ecef';
             let hash = 0;
@@ -190,151 +202,122 @@
             return colors[Math.abs(hash % colors.length)];
         }
 
-        // --- CHUNKED LOADER (The Fix) ---
+        // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
-            if (isScanning) return;
-            isScanning = true;
-            document.getElementById('btnStopScan').style.display = 'block';
-            
-            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Starting Scan...</td></tr>";
-            flatTableData = []; // Clear current list
+            // Safe guard: Don't load if already loading, but do force load if empty
+            if (isDataReady && flatTableData.length > 0) {
+                renderTable(); // Just redraw if data exists
+                return;
+            }
+
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
             
             try {
-                // Chunk Config
-                const CHUNK_SIZE = 4000; 
-                let lastDoc = null;
-                let totalScanned = 0;
-                let activeFound = 0;
-                let keepScanning = true;
+                // Standard limit 10000 per your request
+                const q = query(collection(db, "parts"), limit(10000));
+                const querySnapshot = await getDocs(q);
+                flatTableData = [];
 
-                while (keepScanning && isScanning) {
-                    updateStatus(`Scanning database... (${totalScanned} records checked. Found ${activeFound} active reqs.)`, "#fff");
-
-                    // Build Query
-                    let q;
-                    if (lastDoc) {
-                        // Get NEXT batch
-                        q = query(collection(db, "parts"), orderBy("partNo"), startAfter(lastDoc), limit(CHUNK_SIZE));
-                    } else {
-                        // Get FIRST batch
-                        q = query(collection(db, "parts"), orderBy("partNo"), limit(CHUNK_SIZE));
-                    }
-
-                    const snapshot = await getDocs(q);
-
-                    if (snapshot.empty) {
-                        keepScanning = false; // End of DB
-                        break;
-                    }
-
-                    // Process this batch
-                    snapshot.forEach((doc) => {
-                        const data = doc.data();
-                        
-                        // STRICT FILTER: Only items with Requisitions
-                        if (data.requisitions && data.requisitions.length > 0) {
-                            activeFound++;
-                            
-                            // Find best quote
-                            let bestQuote = null;
-                            if (data.quotes && data.quotes.length > 0) {
-                                bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
-                            }
-                            const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
-
-                            // Add rows
-                            data.requisitions.forEach((req, index) => {
-                                const qty = req.qtyReq || 0;
-                                const budgetUnit = req.budget || 0;
-                                const quoteTotal = bestPrice * qty; 
-                                const tBudget = budgetUnit * qty;   
-                                const delta = quoteTotal - tBudget; 
-
-                                flatTableData.push({
-                                    id: Math.random().toString(36),
-                                    partNo: data.partNo,
-                                    realIndex: index,
-                                    buyer: (req.buyer || "").toString(),
-                                    reqId: (req.reqId || "").toString(),
-                                    hull: (req.hull || "").toString(),
-                                    desc: (data.desc || "").toString(),
-                                    rank: bestQuote ? bestQuote.rank.toString() : "-",
-                                    supplier: bestQuote ? bestQuote.supplier : "-",
-                                    quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
-                                    qty: qty.toString(),
-                                    price: bestQuote ? bestPrice.toFixed(2) : "-",
-                                    total: bestQuote ? quoteTotal.toFixed(2) : "-",
-                                    budget: budgetUnit.toFixed(2),
-                                    tBudget: tBudget.toFixed(2),
-                                    selected: (req.selected || "").toString(),
-                                    delta: bestQuote ? delta.toFixed(2) : "-",
-                                    lead: bestQuote ? (bestQuote.lead || "-") : "-",
-                                    rawDelta: delta,
-                                    hasQuote: !!bestQuote,
-                                    isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
-                                    isSelected: false
-                                });
-                            });
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.requisitions && data.requisitions.length > 0) {
+                        let bestQuote = null;
+                        if (data.quotes && data.quotes.length > 0) {
+                            bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
                         }
-                    });
+                        const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
 
-                    // Update UI immediately (Incremental Rendering)
-                    filterData(); 
+                        data.requisitions.forEach((req, index) => {
+                            const qty = req.qtyReq || 0;
+                            const budgetUnit = req.budget || 0;
+                            const quoteTotal = bestPrice * qty; 
+                            const tBudget = budgetUnit * qty;   
+                            const delta = quoteTotal - tBudget; 
 
-                    // Prep for next loop
-                    lastDoc = snapshot.docs[snapshot.docs.length - 1];
-                    totalScanned += snapshot.size;
-
-                    // Safety break if DB is huge (optional, set to 50k to be safe)
-                    if (totalScanned > 50000) keepScanning = false;
-                }
-
-                updateStatus(`Scan Complete. Checked ${totalScanned} records. Showing ${activeFound} active items.`, "#0f0");
-                document.getElementById('btnStopScan').style.display = 'none';
-                isScanning = false;
+                            flatTableData.push({
+                                id: Math.random().toString(36),
+                                partNo: data.partNo,
+                                realIndex: index,
+                                buyer: (req.buyer || "").toString(),
+                                reqId: (req.reqId || "").toString(),
+                                hull: (req.hull || "").toString(),
+                                desc: (data.desc || "").toString(),
+                                rank: bestQuote ? bestQuote.rank.toString() : "-",
+                                supplier: bestQuote ? bestQuote.supplier : "-",
+                                quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
+                                qty: qty.toString(),
+                                price: bestQuote ? bestPrice.toFixed(2) : "-",
+                                total: bestQuote ? quoteTotal.toFixed(2) : "-",
+                                budget: budgetUnit.toFixed(2),
+                                tBudget: tBudget.toFixed(2),
+                                selected: (req.selected || "").toString(),
+                                delta: bestQuote ? delta.toFixed(2) : "-",
+                                lead: bestQuote ? (bestQuote.lead || "-") : "-",
+                                rawDelta: delta,
+                                hasQuote: !!bestQuote,
+                                isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
+                                isSelected: false
+                            });
+                        });
+                    }
+                });
+                
+                isDataReady = true; // Mark as ready
+                filterData(); // Run filter/render now that data is populated
 
             } catch (err) {
-                console.error(err);
-                updateStatus("Error: " + err.message, "red");
-                isScanning = false;
+                console.error("Firebase Error:", err);
+                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
             }
         }
 
-        window.stopScan = () => {
-            isScanning = false;
-            updateStatus("Scan Stopped by User.", "orange");
-            document.getElementById('btnStopScan').style.display = 'none';
-        }
-
-        // --- STANDARD UI LOGIC ---
         window.resetAll = () => {
-            document.querySelectorAll('.col-search').forEach(i => i.value = "");
             document.getElementById('searchInput').value = "";
             document.getElementById('buyerFilter').value = "";
-            isScanning = false;
+            isDataReady = false; 
             loadInitial();
         }
 
         window.searchData = async () => {
-            // Client-side search is fast now that we load everything
+            if(!isDataReady) {
+                alert("Please wait for data to finish loading.");
+                return;
+            }
+            
+            const term = document.getElementById('searchInput').value.trim().toUpperCase();
+            if(term && flatTableData.length === 0) {
+                 try {
+                    const q = query(collection(db, "parts"), where("partNo", "==", term));
+                    await getDocs(q);
+                    isDataReady = false;
+                    loadInitial(); 
+                    return;
+                 } catch(err) { console.error(err); }
+            }
             filterData();
         }
 
         window.filterData = () => {
+            if (!isDataReady) return; // Stop filter from running on empty array
+
             const inputs = document.querySelectorAll('.col-search');
-            const searchInput = document.getElementById('searchInput').value.toUpperCase();
-            const buyerInput = document.getElementById('buyerFilter').value.toUpperCase();
-
             filteredData = flatTableData.filter(row => {
-                if (searchInput && !row.partNo.includes(searchInput)) return false;
-                if (buyerInput && !row.buyer.toUpperCase().includes(buyerInput)) return false;
-
                 if (!row.buyer.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
                 if (!row.partNo.toUpperCase().includes(inputs[1].value.toUpperCase())) return false;
                 if (!row.reqId.toUpperCase().includes(inputs[2].value.toUpperCase())) return false;
                 if (!row.hull.toUpperCase().includes(inputs[3].value.toUpperCase())) return false;
                 if (!row.desc.toUpperCase().includes(inputs[4].value.toUpperCase())) return false;
-                // Add more column filters as needed
+                if (!row.rank.toUpperCase().includes(inputs[5].value.toUpperCase())) return false;
+                if (!row.supplier.toUpperCase().includes(inputs[6].value.toUpperCase())) return false;
+                if (!row.quoteDate.toUpperCase().includes(inputs[7].value.toUpperCase())) return false;
+                if (!row.qty.includes(inputs[8].value)) return false;
+                if (!row.price.includes(inputs[9].value)) return false;
+                if (!row.total.includes(inputs[10].value)) return false;
+                if (!row.budget.includes(inputs[11].value)) return false;
+                if (!row.tBudget.includes(inputs[12].value)) return false;
+                if (!row.selected.toUpperCase().includes(inputs[13].value.toUpperCase())) return false;
+                if (!row.delta.includes(inputs[14].value)) return false;
+                if (!row.lead.toUpperCase().includes(inputs[15].value.toUpperCase())) return false;
                 return true;
             });
             currentPage = 1;
@@ -343,7 +326,8 @@
 
         window.toggleSelectAll = () => {
             const masterCheck = document.getElementById('selectAll');
-            filteredData.forEach(row => { row.isSelected = masterCheck.checked; });
+            const isChecked = masterCheck.checked;
+            filteredData.forEach(row => { row.isSelected = isChecked; });
             renderTable();
         }
 
@@ -358,7 +342,7 @@
         window.deleteSelected = async () => {
             const selectedRows = flatTableData.filter(r => r.isSelected);
             if (selectedRows.length === 0) return alert("No records selected!");
-            if (!confirm(`Delete ${selectedRows.length} records?`)) return;
+            if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected records?`)) return;
 
             const partsToUpdate = {}; 
             selectedRows.forEach(row => {
@@ -376,22 +360,17 @@
                         await updateDoc(docRef, { requisitions: updatedReqs });
                     }
                 }
-                alert("Deleted.");
+                alert("Bulk delete complete!");
                 document.getElementById('selectAll').checked = false; 
-                isScanning = false;
+                isDataReady = false;
                 loadInitial(); 
-            } catch (err) { alert("Error: " + err.message); }
+            } catch (err) { alert("Error during bulk delete: " + err.message); }
         }
 
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
-                // Don't show "No records" if scan just started
-                if(flatTableData.length === 0 && isScanning) {
-                     tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Scanning... data will appear shortly.</td></tr>";
-                } else {
-                     tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found.</td></tr>";
-                }
+                tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
                 updateControls();
                 return;
             }
@@ -402,9 +381,10 @@
 
             pageData.forEach(row => {
                 let deltaColor = "#333";
-                if(row.hasQuote && row.rawDelta > 0) deltaColor = "#d9534f";
-                if(row.hasQuote && row.rawDelta <= 0) deltaColor = "#28a745";
-                
+                if(row.hasQuote) {
+                    if(row.rawDelta > 0) deltaColor = "#d9534f";
+                    if(row.rawDelta <= 0) deltaColor = "#28a745";
+                }
                 let rankColor = "#ccc";
                 if (row.isBestRank) rankColor = "#28a745";
                 else if (row.rank == '2') rankColor = "#ffc107";
@@ -415,11 +395,11 @@
                 const tr = `
                     <tr style="${row.isSelected ? 'background-color: #e8f4ff;' : ''}">
                         <td style="text-align:center;">
-                            <input type="checkbox" ${row.isSelected ? 'checked' : ''} onclick="toggleRow('${row.id}')" style="transform: scale(1.2);">
+                            <input type="checkbox" ${row.isSelected ? 'checked' : ''} onclick="toggleRow('${row.id}')" style="transform: scale(1.2); cursor: pointer;">
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="openEdit('${row.partNo}', ${row.realIndex})">✏️</button>
-                            <button class="btn-icon btn-del" onclick="deleteReq('${row.partNo}', ${row.realIndex})">🗑️</button>
+                            <button class="btn-icon" onclick="openEdit('${row.partNo}', ${row.realIndex})" title="Edit Req">✏️</button>
+                            <button class="btn-icon btn-del" onclick="deleteReq('${row.partNo}', ${row.realIndex})" title="Delete Line">🗑️</button>
                         </td>
                         <td><span class="buyer-badge" style="background-color:${buyerColor}">${row.buyer}</span></td>
                         <td><a onclick="openDetailModal('${row.partNo}')" class="part-link">${row.partNo}</a></td>
@@ -448,14 +428,16 @@
             const totalItems = filteredData.length;
             const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
             paginationDiv.innerHTML = `
-                <button onclick="prevPage()" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
-                <span class="page-info">Page ${currentPage} of ${totalPages} (${totalItems} items)</span>
-                <button onclick="nextPage()" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
+                <button id="btnPrev" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
+                <span class="page-info">Showing ${totalItems} Records | Page ${currentPage} of ${totalPages}</span>
+                <button id="btnNext" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
             `;
+            document.getElementById('btnPrev').onclick = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
+            document.getElementById('btnNext').onclick = () => { if(currentPage < totalPages) { currentPage++; renderTable(); } };
         }
 
         window.deleteReq = async (partNo, index) => {
-            if(!confirm("Delete?")) return;
+            if(!confirm("Delete this requisition line?")) return;
             try {
                 const docRef = doc(db, "parts", partNo);
                 const docSnap = await getDoc(docRef);
@@ -464,42 +446,15 @@
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
                     await updateDoc(docRef, { requisitions: updatedReqs });
-                    isScanning = false; loadInitial();
+                    isDataReady = false;
+                    loadInitial();
                 }
             } catch (err) { alert("Error: " + err.message); }
         }
 
-        window.saveEdit = async () => {
-            const partNo = document.getElementById('edit_partNo').value;
-            const docRef = doc(db, "parts", partNo);
-            const docSnap = await getDoc(docRef);
-            const data = docSnap.data();
-            let updatedReqs = [...data.requisitions];
-            const newReqData = {
-                reqId: document.getElementById('edit_reqId').value,
-                buyer: document.getElementById('edit_buyer').value,
-                hull: document.getElementById('edit_hull').value,
-                qtyReq: Number(document.getElementById('edit_qty').value),
-                uom: document.getElementById('edit_uom').value,
-                budget: Number(document.getElementById('edit_budget').value),
-                selected: document.getElementById('edit_selected').value,
-                status: "Open",
-                dateAdded: new Date().toISOString()
-            };
-            if(data.requisitions[currentEditIndex] && data.requisitions[currentEditIndex].dateAdded) {
-                 newReqData.dateAdded = data.requisitions[currentEditIndex].dateAdded;
-            }
-            updatedReqs[currentEditIndex] = newReqData;
-            await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
-            closeModal();
-            isScanning = false; loadInitial();
-        }
-
-        // Helpers
-        let currentEditPart = null;
-        let currentEditIndex = null;
         window.openEdit = async (partNo, index) => {
-            currentEditPart = partNo; currentEditIndex = index;
+            currentEditPart = partNo;
+            currentEditIndex = index;
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
@@ -514,30 +469,72 @@
             document.getElementById('edit_uom').value = req.uom;
             document.getElementById('edit_budget').value = req.budget || 0;
             document.getElementById('edit_selected').value = req.selected || "";
-            document.getElementById('editModal').style.display='flex';
+            document.querySelector('.modal-title').innerText = "✏️ Modify Requisition";
+            document.getElementById('editModal').style.display = 'flex';
         }
-        window.closeModal = () => document.getElementById('editModal').style.display='none';
-        window.openDetailModal = (partNo) => { document.getElementById('detailFrame').src=`detail.html?part=${partNo}`; document.getElementById('detailModal').style.display='flex'; }
-        window.closeDetailModal = () => { document.getElementById('detailModal').style.display='none'; isScanning=false; loadInitial(); }
-        window.prevPage = () => { if(currentPage>1) { currentPage--; renderTable(); } }
-        window.nextPage = () => { if(currentPage < Math.ceil(filteredData.length/itemsPerPage)) { currentPage++; renderTable(); } }
 
-        // Bind Global
-        window.filterData = filterData;
-        window.toggleSelectAll = toggleSelectAll;
-        window.toggleRow = toggleRow;
-        window.deleteSelected = deleteSelected;
-        window.openEdit = openEdit;
-        window.deleteReq = deleteReq;
-        window.saveEdit = saveEdit;
-        window.closeModal = closeModal;
-        window.searchData = searchData;
-        window.resetAll = resetAll;
-        window.openDetailModal = openDetailModal;
-        window.closeDetailModal = closeDetailModal;
-        window.stopScan = stopScan;
+        window.closeModal = () => { document.getElementById('editModal').style.display = 'none'; }
 
-        document.addEventListener("DOMContentLoaded", () => { isScanning = false; loadInitial(); });
+        window.saveEdit = async () => {
+            const partNo = currentEditPart;
+            const index = currentEditIndex;
+            try {
+                const docRef = doc(db, "parts", partNo);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    let updatedReqs = data.requisitions ? [...data.requisitions] : [];
+                    const newReqData = {
+                        reqId: document.getElementById('edit_reqId').value,
+                        buyer: document.getElementById('edit_buyer').value,
+                        hull: document.getElementById('edit_hull').value,
+                        qtyReq: Number(document.getElementById('edit_qty').value),
+                        uom: document.getElementById('edit_uom').value,
+                        budget: Number(document.getElementById('edit_budget').value),
+                        selected: document.getElementById('edit_selected').value,
+                        status: "Open",
+                        dateAdded: newReqData && newReqData.dateAdded ? newReqData.dateAdded : new Date().toISOString()
+                    };
+                    if(data.requisitions[index] && data.requisitions[index].dateAdded) {
+                         newReqData.dateAdded = data.requisitions[index].dateAdded;
+                    }
+                    updatedReqs[index] = newReqData;
+                    await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
+                    closeModal();
+                    isDataReady = false;
+                    loadInitial();
+                }
+            } catch (err) { alert("Error saving: " + err.message); }
+        }
+
+        window.openDetailModal = (partNo) => {
+            const modal = document.getElementById('detailModal');
+            const frame = document.getElementById('detailFrame');
+            frame.src = `detail.html?part=${partNo}`; 
+            modal.style.display = 'flex';
+        }
+
+        window.closeDetailModal = () => {
+            document.getElementById('detailModal').style.display = 'none';
+            document.getElementById('detailFrame').src = "";
+            isDataReady = false;
+            loadInitial();
+        }
+
+        // --- SAFE RELOAD LOGIC ---
+        // 1. Force load on cold start
+        document.addEventListener("DOMContentLoaded", () => {
+            isDataReady = false;
+            loadInitial();
+        });
+
+        // 2. Force load on Back Button (BFCache Restore)
+        window.addEventListener("pageshow", (event) => {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                isDataReady = false;
+                loadInitial();
+            }
+        });
 
     </script>
 </body>
