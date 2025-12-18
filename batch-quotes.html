@@ -45,7 +45,7 @@
             <span class="code-snippet">Notes</span>
             <span class="code-snippet">MFG</span>
             <span class="code-snippet">QuoteFile</span>
-        </div>
+            <span class="code-snippet">NSN</span> <span class="code-snippet">SPMIG</span> <span class="code-snippet">DirectShip</span> </div>
 
         <div class="drop-zone" id="dropZone">
             <h3>📂 Drag & Drop Excel File Here</h3>
@@ -81,22 +81,15 @@
             logBox.prepend(div);
         }
 
-        // --- NEW HELPER: Convert Excel Serial Date to YYYY-MM-DD ---
         function formatExcelDate(val, defaultToToday = false) {
             if (!val) {
                 return defaultToToday ? new Date().toLocaleDateString('en-CA') : "";
             }
-
-            // If it's a number (Excel Serial Date like 45665)
             if (typeof val === 'number') {
-                // Excel base date logic (approx 1900 epoch)
                 const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-                // Adjust for timezone to prevent off-by-one errors
                 date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
                 return date.toISOString().split('T')[0];
             }
-
-            // If it's already text, just return it
             return val.toString().trim();
         }
 
@@ -115,7 +108,6 @@
 
                     let count = 0;
                     for (const row of rows) {
-                        // 1. Validate Row
                         if (!row.PartNo || !row.Supplier || !row.Price) {
                             log(`Skipping Row ${count+1}: Missing PartNo, Supplier, or Price`, "warn");
                             continue;
@@ -123,9 +115,8 @@
 
                         const partNo = row.PartNo.toString().toUpperCase().trim();
                         
-                        // Use the new Helper to fix dates
-                        const qDate = formatExcelDate(row.QuoteDate, true); // Default to Today if empty
-                        const vDate = formatExcelDate(row.Validity, false); // Default to empty if empty
+                        const qDate = formatExcelDate(row.QuoteDate, true); 
+                        const vDate = formatExcelDate(row.Validity, false); 
 
                         // Prepare the Quote Object
                         const quoteItem = {
@@ -133,16 +124,22 @@
                             price: Number(row.Price || 0),
                             qty: Number(row.Qty || 1),
                             lead: row.LeadTime ? row.LeadTime.toString() : "TBD",
-                            valid: vDate,  // Now correctly formatted
+                            valid: vDate,
                             notes: row.Notes ? row.Notes.toString() : "",
                             mfg: row.MFG ? row.MFG.toString() : "",
                             file: row.QuoteFile ? row.QuoteFile.toString() : "",
+                            
+                            // --- NEW FIELDS ---
+                            nsn: row.NSN ? row.NSN.toString() : "",
+                            spmig: row.SPMIG ? row.SPMIG.toString() : "",
+                            direct: row.DirectShip ? row.DirectShip.toString() : "",
+                            // ------------------
+
                             rank: 999,
-                            date: qDate,   // Now correctly formatted
+                            date: qDate,
                             timestamp: new Date().toISOString()
                         };
 
-                        // 2. Database Update
                         const docRef = doc(db, "parts", partNo);
                         const docSnap = await getDoc(docRef);
 
