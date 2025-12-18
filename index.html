@@ -9,7 +9,7 @@
         
         /* Header Layout */
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h2 { color: #0056b3; margin: 0; }
+        h2 { color: #0056b3; margin: 0; display: flex; align-items: center; }
         
         /* Buttons */
         .btn-add { 
@@ -51,9 +51,9 @@
         a.part-link:hover { color: #003366; }
         
         .col-currency { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
-        .hull-badge { background-color: #17a2b8; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+        .hull-badge { color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
         .req-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; }
-        .buyer-badge { background-color: #fff0f6; color: #c41d7f; border: 1px solid #ffadd2; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
+        .buyer-badge { color: #333; border: 1px solid rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
 
         /* Pagination Controls */
         .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
@@ -74,7 +74,10 @@
 <body>
 
     <div class="header-container">
-        <h2>☁️ Rush Procurement Base</h2>
+        <h2>
+            <img src="image_10.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+            Rush Procurement Base
+        </h2>
         <div>
             <a href="quotes.html" class="btn-add btn-grey">🔍 Quote Search</a>
             <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
@@ -172,39 +175,46 @@
         const paginationDiv = document.getElementById('paginationControls');
 
         // --- GLOBAL STATE ---
-        // 'flatTableData' will hold a simplified version of every row for easy filtering
         let flatTableData = []; 
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
+
+        // --- COLOR GENERATOR ---
+        function getColorForString(str) {
+            if (!str) return '#e9ecef'; // Default gray for empty
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            // Specific pastel colors for common values, random for others
+            const colors = [
+                '#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', 
+                '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc'
+            ];
+            const index = Math.abs(hash % colors.length);
+            return colors[index];
+        }
 
         // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
             tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
             
             try {
-                // Fetch max records
                 const q = query(collection(db, "parts"), limit(10000));
                 const querySnapshot = await getDocs(q);
                 
-                flatTableData = []; // Clear current
+                flatTableData = [];
 
-                // FLATTEN THE DATA
-                // We convert the complex DB structure into simple rows so filtering is instant
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    
-                    // Only process active Requisitions
                     if (data.requisitions && data.requisitions.length > 0) {
-                        
-                        // Calculate Best Quote for this part
                         let bestQuote = null;
                         if (data.quotes && data.quotes.length > 0) {
                             bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
                         }
                         const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
 
-                        // Create a row for every requisition
                         data.requisitions.forEach((req, index) => {
                             const qty = req.qtyReq || 0;
                             const budgetUnit = req.budget || 0;
@@ -212,14 +222,9 @@
                             const tBudget = budgetUnit * qty;   
                             const delta = quoteTotal - tBudget; 
 
-                            // Format Strings for Searching
-                            // We pre-format currency/dates here so the "Text Search" matches what the user sees
                             flatTableData.push({
-                                // Metadata for Edit/Delete actions
                                 partNo: data.partNo,
-                                realIndex: index, // Used to delete/edit specific req index in DB
-
-                                // Searchable Fields
+                                realIndex: index,
                                 buyer: (req.buyer || "").toString(),
                                 reqId: (req.reqId || "").toString(),
                                 hull: (req.hull || "").toString(),
@@ -235,8 +240,6 @@
                                 selected: (req.selected || "").toString(),
                                 delta: bestQuote ? delta.toFixed(2) : "-",
                                 lead: bestQuote ? (bestQuote.lead || "-") : "-",
-                                
-                                // Raw values for logic/colors
                                 rawDelta: delta,
                                 hasQuote: !!bestQuote,
                                 isBestRank: bestQuote ? (bestQuote.rank == 1) : false
@@ -244,68 +247,42 @@
                         });
                     }
                 });
-
-                // Initial Render
                 filterData();
-
             } catch (err) {
                 console.error("Firebase Error:", err);
                 tbody.innerHTML = `<tr><td colspan='17' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
             }
         }
 
-        // 2. FILTER FUNCTION (Triggered by any input keyup)
+        // 2. FILTER FUNCTION
         window.filterData = () => {
-            // Get all search inputs
             const inputs = document.querySelectorAll('.col-search');
-            
-            // Filter the master list
             filteredData = flatTableData.filter(row => {
-                // Check Buyer
                 if (!row.buyer.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
-                // Check Part No
                 if (!row.partNo.toUpperCase().includes(inputs[1].value.toUpperCase())) return false;
-                // Check Req ID
                 if (!row.reqId.toUpperCase().includes(inputs[2].value.toUpperCase())) return false;
-                // Check Hull
                 if (!row.hull.toUpperCase().includes(inputs[3].value.toUpperCase())) return false;
-                // Check Desc
                 if (!row.desc.toUpperCase().includes(inputs[4].value.toUpperCase())) return false;
-                // Check Rank
                 if (!row.rank.toUpperCase().includes(inputs[5].value.toUpperCase())) return false;
-                // Check Supplier
                 if (!row.supplier.toUpperCase().includes(inputs[6].value.toUpperCase())) return false;
-                // Check Date
                 if (!row.quoteDate.toUpperCase().includes(inputs[7].value.toUpperCase())) return false;
-                // Check Qty
                 if (!row.qty.includes(inputs[8].value)) return false;
-                // Check Price
                 if (!row.price.includes(inputs[9].value)) return false;
-                // Check Total
                 if (!row.total.includes(inputs[10].value)) return false;
-                // Check Budget
                 if (!row.budget.includes(inputs[11].value)) return false;
-                // Check T-Budget
                 if (!row.tBudget.includes(inputs[12].value)) return false;
-                // Check Selected
                 if (!row.selected.toUpperCase().includes(inputs[13].value.toUpperCase())) return false;
-                // Check Delta
                 if (!row.delta.includes(inputs[14].value)) return false;
-                // Check Lead
                 if (!row.lead.toUpperCase().includes(inputs[15].value.toUpperCase())) return false;
-
-                return true; // Passed all checks
+                return true;
             });
-
-            // Reset to page 1 of results
             currentPage = 1;
             renderTable();
         }
 
-        // 3. RENDER TABLE (Pagination Logic)
+        // 3. RENDER TABLE
         function renderTable() {
             tbody.innerHTML = "";
-            
             if (filteredData.length === 0) {
                 tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
                 updateControls();
@@ -317,28 +294,30 @@
             const pageData = filteredData.slice(startIndex, endIndex);
 
             pageData.forEach(row => {
-                // Logic for Delta Color
                 let deltaColor = "#333";
                 if(row.hasQuote) {
-                    if(row.rawDelta > 0) deltaColor = "#d9534f"; // Red
-                    if(row.rawDelta <= 0) deltaColor = "#28a745"; // Green
+                    if(row.rawDelta > 0) deltaColor = "#d9534f";
+                    if(row.rawDelta <= 0) deltaColor = "#28a745";
                 }
 
-                // Logic for Rank Badge Color
                 let rankColor = "#ccc";
-                if (row.isBestRank) rankColor = "#28a745"; // Green
-                else if (row.rank == '2') rankColor = "#ffc107"; // Yellow
+                if (row.isBestRank) rankColor = "#28a745";
+                else if (row.rank == '2') rankColor = "#ffc107";
                 
+                // Generate colors for Buyer and Hull
+                const buyerColor = getColorForString(row.buyer);
+                const hullColor = getColorForString(row.hull);
+
                 const tr = `
                     <tr>
                         <td>
                             <button class="btn-icon" onclick="openEdit('${row.partNo}', ${row.realIndex})" title="Edit Req">✏️</button>
                             <button class="btn-icon btn-del" onclick="deleteReq('${row.partNo}', ${row.realIndex})" title="Delete Line">🗑️</button>
                         </td>
-                        <td><span class="buyer-badge">${row.buyer}</span></td>
+                        <td><span class="buyer-badge" style="background-color:${buyerColor}">${row.buyer}</span></td>
                         <td><a href="detail.html?part=${row.partNo}" class="part-link">${row.partNo}</a></td>
                         <td><span class="req-badge">${row.reqId}</span></td>
-                        <td><span class="hull-badge">${row.hull}</span></td>
+                        <td><span class="hull-badge" style="background-color:${hullColor}">${row.hull}</span></td>
                         <td>${row.desc}</td>
                         <td><span style="background:${rankColor}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${row.rank}</span></td>
                         <td>${row.supplier}</td>
@@ -355,20 +334,17 @@
                 `;
                 tbody.innerHTML += tr;
             });
-
             updateControls();
         }
 
         function updateControls() {
             const totalItems = filteredData.length;
             const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-
             paginationDiv.innerHTML = `
                 <button id="btnPrev" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
                 <span class="page-info">Showing ${totalItems} Records | Page ${currentPage} of ${totalPages}</span>
                 <button id="btnNext" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
             `;
-
             document.getElementById('btnPrev').onclick = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
             document.getElementById('btnNext').onclick = () => { if(currentPage < totalPages) { currentPage++; renderTable(); } };
         }
@@ -384,8 +360,6 @@
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
                     await updateDoc(docRef, { requisitions: updatedReqs });
-                    
-                    // Reload to refresh flat data structure
                     loadInitial();
                 }
             } catch (err) { alert("Error: " + err.message); }
@@ -398,16 +372,12 @@
         window.openEdit = async (partNo, index) => {
             currentEditPart = partNo;
             currentEditIndex = index;
-            
-            // Get latest from DB to be safe
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
             const data = docSnap.data();
-
             document.getElementById('edit_partNo').value = partNo;
             document.getElementById('edit_desc').value = data.desc || "";
-
             const req = data.requisitions[index];
             document.getElementById('edit_reqId').value = req.reqId;
             document.getElementById('edit_buyer').value = req.buyer || "";
@@ -416,7 +386,6 @@
             document.getElementById('edit_uom').value = req.uom;
             document.getElementById('edit_budget').value = req.budget || 0;
             document.getElementById('edit_selected').value = req.selected || "";
-
             document.querySelector('.modal-title').innerText = "✏️ Modify Requisition";
             document.getElementById('editModal').style.display = 'flex';
         }
@@ -426,15 +395,12 @@
         window.saveEdit = async () => {
             const partNo = currentEditPart;
             const index = currentEditIndex;
-            
             try {
                 const docRef = doc(db, "parts", partNo);
                 const docSnap = await getDoc(docRef);
-                
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     let updatedReqs = data.requisitions ? [...data.requisitions] : [];
-
                     const newReqData = {
                         reqId: document.getElementById('edit_reqId').value,
                         buyer: document.getElementById('edit_buyer').value,
@@ -446,26 +412,20 @@
                         status: "Open",
                         dateAdded: newReqData && newReqData.dateAdded ? newReqData.dateAdded : new Date().toISOString()
                     };
-
-                    // Preserve original date added if possible
                     if(data.requisitions[index] && data.requisitions[index].dateAdded) {
                          newReqData.dateAdded = data.requisitions[index].dateAdded;
                     }
-
                     updatedReqs[index] = newReqData;
-
                     await updateDoc(docRef, { 
                         requisitions: updatedReqs,
                         desc: document.getElementById('edit_desc').value
                     });
-
                     closeModal();
-                    loadInitial(); // Reload to refresh flat data
+                    loadInitial();
                 }
             } catch (err) { alert("Error saving: " + err.message); }
         }
 
-        // Trigger Load
         loadInitial();
     </script>
 </body>
