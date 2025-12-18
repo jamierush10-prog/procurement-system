@@ -22,7 +22,7 @@
         .btn-green  { background-color: #28a745; }    /* Single Req */
         .btn-purple { background-color: #6f42c1; }    /* Batch Req Upload */
         .btn-blue   { background-color: #0056b3; }    /* Single Quote */
-        .btn-orange { background-color: #fd7e14; }    /* Batch Quote Upload (NEW) */
+        .btn-orange { background-color: #fd7e14; }    /* Batch Quote Upload */
         
         .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
         .btn-search:hover { background-color: #004494; }
@@ -205,7 +205,7 @@
                             <tr>
                                 <td>
                                     <button class="btn-icon" onclick="openEdit('${data.partNo}', ${index})" title="Edit Req">✏️</button>
-                                    <button class="btn-icon btn-del" onclick="deleteReq('${data.partNo}', ${index})" title="Delete Req">🗑️</button>
+                                    <button class="btn-icon btn-del" onclick="deleteReq('${data.partNo}', ${index})" title="Delete Req Only (Saves Quotes)">🗑️</button>
                                 </td>
                                 <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
                                 <td><span class="req-badge">${req.reqId || '-'}</span></td>
@@ -224,13 +224,12 @@
                     });
                 } else {
                     // CASE B: Orphan Part (Quote exists, but no Req)
-                    // Index -1 tells the system it's a "New" req for a "Create" action.
+                    // REMOVED DELETE BUTTON to protect Quotes
                     const row = `
                         <tr>
                             <td>
                                 <button class="btn-icon" onclick="openEdit('${data.partNo}', -1)" title="Add Req Info">✏️</button>
-                                <button class="btn-icon btn-del" onclick="deletePart('${data.partNo}')" title="Delete Entire Record">🗑️</button>
-                            </td>
+                                </td>
                             <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
                             <td style="color:#999; font-style:italic;">No Req</td>
                             <td>-</td>
@@ -252,28 +251,23 @@
         // --- 4. DELETE LOGIC ---
         
         // Type A: Delete a single Req Line
+        // This ONLY deletes from the 'requisitions' list. It DOES NOT touch 'quotes'.
         window.deleteReq = async (partNo, index) => {
-            if(!confirm("Delete this requisition line?")) return;
+            if(!confirm("Delete this requisition line? (Quotes will be preserved)")) return;
             try {
                 const docRef = doc(db, "parts", partNo);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     const updatedReqs = [...data.requisitions];
+                    
+                    // Remove just this one requisition
                     updatedReqs.splice(index, 1);
+                    
+                    // Update database
                     await updateDoc(docRef, { requisitions: updatedReqs });
                     refreshView();
                 }
-            } catch (err) { alert("Error: " + err.message); }
-        }
-
-        // Type B: Delete the Entire Part (used for Orphans)
-        window.deletePart = async (partNo) => {
-            if(!confirm(`Are you sure you want to PERMANENTLY delete Part ${partNo}?\n\nSince this part has no active Requisitions, this will delete the Quote History as well.`)) return;
-            try {
-                await deleteDoc(doc(db, "parts", partNo));
-                alert("Part Record Deleted.");
-                refreshView();
             } catch (err) { alert("Error: " + err.message); }
         }
 
@@ -285,7 +279,6 @@
             currentEditPart = partNo;
             currentEditIndex = index;
             
-            // Get current data
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
@@ -295,14 +288,14 @@
             document.getElementById('edit_desc').value = data.desc || "";
 
             if(index === -1) {
-                // Orphan Mode: Clear fields so user can "Create" the first req
+                // Orphan Mode: Create first req
                 document.getElementById('edit_reqId').value = "";
                 document.getElementById('edit_hull').value = "";
                 document.getElementById('edit_qty').value = "";
                 document.getElementById('edit_uom').value = "EA";
                 document.querySelector('.modal-title').innerText = "✏️ Add Requisition Details";
             } else {
-                // Edit Mode: Fill with existing data
+                // Edit Mode
                 const req = data.requisitions[index];
                 document.getElementById('edit_reqId').value = req.reqId;
                 document.getElementById('edit_hull').value = req.hull;
@@ -338,10 +331,8 @@
                     };
 
                     if(index === -1) {
-                        // Orphan Case: Add NEW item to array
                         updatedReqs.push(newReqData);
                     } else {
-                        // Edit Case: Update existing item
                         if(updatedReqs[index].dateAdded) newReqData.dateAdded = updatedReqs[index].dateAdded;
                         updatedReqs[index] = newReqData;
                     }
