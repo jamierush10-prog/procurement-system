@@ -75,7 +75,8 @@
                 <input type="text" id="s_supp" placeholder="e.g. ABC">
             </div>
             <div>
-                <label>Quote File Name</label> <input type="text" id="s_file" placeholder="e.g. PDF">
+                <label>Quote File Name</label>
+                <input type="text" id="s_file" placeholder="e.g. PDF">
             </div>
             <div class="btn-container">
                 <button onclick="runDeepSearch()" class="btn-search">Search</button>
@@ -93,7 +94,8 @@
                     <th>Description</th>
                     <th>Supplier</th>
                     <th>Rank</th>
-                    <th>Quote File</th> <th>Price</th>
+                    <th>Quote File</th>
+                    <th>Price</th>
                     <th>Qty Quoted</th>
                     <th>Quote Date</th>
                     <th>Lead Time</th>
@@ -130,7 +132,7 @@
             const partTerm = document.getElementById('s_part').value.trim().toUpperCase();
             const descTerm = document.getElementById('s_desc').value.trim().toUpperCase();
             const suppTerm = document.getElementById('s_supp').value.trim().toUpperCase();
-            const fileTerm = document.getElementById('s_file').value.trim().toUpperCase(); // NEW
+            const fileTerm = document.getElementById('s_file').value.trim().toUpperCase();
             
             const tbody = document.getElementById('resultsBody');
             const status = document.getElementById('status');
@@ -155,20 +157,17 @@
                     const partNo = data.partNo || "";
                     const desc = (data.desc || "").toUpperCase();
                     
-                    // Filter Level 1: Part/Desc
                     const partMatch = !partTerm || partNo.includes(partTerm);
                     const descMatch = !descTerm || desc.includes(descTerm);
 
                     if (partMatch && descMatch) {
-                        // Filter Level 2: Quotes
                         if (data.quotes && data.quotes.length > 0) {
                             data.quotes.forEach(q => {
                                 const supplier = (q.supplier || "").toUpperCase();
-                                const fileName = (q.file || "").toUpperCase(); // Get File Name
+                                const fileName = (q.file || "").toUpperCase();
 
-                                // Check Partial Matches
                                 const suppMatch = !suppTerm || supplier.includes(suppTerm);
-                                const fileMatch = !fileTerm || fileName.includes(fileTerm); // NEW CHECK
+                                const fileMatch = !fileTerm || fileName.includes(fileTerm);
 
                                 if (suppMatch && fileMatch) {
                                     matchCount++;
@@ -178,8 +177,7 @@
                                             <td>${data.desc || '-'}</td>
                                             <td>${q.supplier}</td>
                                             <td><span style="background:${q.rank==1?'#28a745':'#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${q.rank}</span></td>
-                                            <td>${q.file ? `<a href="${q.file}" target="_blank" style="color:#0056b3;">${q.file}</a>` : '-'}</td>
-                                            <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
+                                            <td>${q.file || '-'}</td> <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
                                             <td>${q.qty}</td>
                                             <td>${q.date}</td>
                                             <td>${q.lead}</td>
