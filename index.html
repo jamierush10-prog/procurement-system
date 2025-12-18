@@ -188,7 +188,7 @@
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
-        let isLoaded = false;
+        let isDataReady = false; // Prevents race conditions
 
         // --- COLOR GENERATOR ---
         function getColorForString(str) {
@@ -199,12 +199,16 @@
             return colors[Math.abs(hash % colors.length)];
         }
 
-        // 1. LOAD INITIAL DATA (Safe Load)
+        // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
-            if(isLoaded) return; // Prevent double firing
-            isLoaded = true;
+            // Safe guard: Don't load if already loading, but do force load if empty
+            if (isDataReady && flatTableData.length > 0) {
+                renderTable(); // Just redraw if data exists
+                return;
+            }
 
             tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
+            
             try {
                 const q = query(collection(db, "parts"), limit(10000));
                 const querySnapshot = await getDocs(q);
@@ -253,7 +257,10 @@
                         });
                     }
                 });
-                filterData();
+                
+                isDataReady = true; // Mark as ready
+                filterData(); // Run filter/render now that data is populated
+
             } catch (err) {
                 console.error("Firebase Error:", err);
                 tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
@@ -263,17 +270,22 @@
         window.resetAll = () => {
             document.getElementById('searchInput').value = "";
             document.getElementById('buyerFilter').value = "";
-            isLoaded = false; 
+            isDataReady = false; 
             loadInitial();
         }
 
         window.searchData = async () => {
+            if(!isDataReady) {
+                alert("Please wait for data to finish loading.");
+                return;
+            }
+            
             const term = document.getElementById('searchInput').value.trim().toUpperCase();
             if(term && flatTableData.length === 0) {
                  try {
                     const q = query(collection(db, "parts"), where("partNo", "==", term));
                     await getDocs(q);
-                    isLoaded = false;
+                    isDataReady = false;
                     loadInitial(); 
                     return;
                  } catch(err) { console.error(err); }
@@ -282,6 +294,8 @@
         }
 
         window.filterData = () => {
+            if (!isDataReady) return; // Stop filter from running on empty array
+
             const inputs = document.querySelectorAll('.col-search');
             filteredData = flatTableData.filter(row => {
                 if (!row.buyer.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
@@ -344,7 +358,7 @@
                 }
                 alert("Bulk delete complete!");
                 document.getElementById('selectAll').checked = false; 
-                isLoaded = false;
+                isDataReady = false;
                 loadInitial(); 
             } catch (err) { alert("Error during bulk delete: " + err.message); }
         }
@@ -428,7 +442,7 @@
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
                     await updateDoc(docRef, { requisitions: updatedReqs });
-                    isLoaded = false;
+                    isDataReady = false;
                     loadInitial();
                 }
             } catch (err) { alert("Error: " + err.message); }
@@ -483,7 +497,7 @@
                     updatedReqs[index] = newReqData;
                     await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
                     closeModal();
-                    isLoaded = false;
+                    isDataReady = false;
                     loadInitial();
                 }
             } catch (err) { alert("Error saving: " + err.message); }
@@ -499,11 +513,10 @@
         window.closeDetailModal = () => {
             document.getElementById('detailModal').style.display = 'none';
             document.getElementById('detailFrame').src = "";
-            isLoaded = false;
+            isDataReady = false;
             loadInitial();
         }
 
-        // Bind global
         window.filterData = filterData;
         window.toggleSelectAll = toggleSelectAll;
         window.toggleRow = toggleRow;
@@ -517,17 +530,17 @@
         window.openDetailModal = openDetailModal;
         window.closeDetailModal = closeDetailModal;
 
-        // --- RELOAD LOGIC ---
-        // Ensure data loads when DOM is ready
+        // --- SAFE RELOAD LOGIC ---
+        // 1. Force load on cold start
         document.addEventListener("DOMContentLoaded", () => {
-            isLoaded = false;
+            isDataReady = false;
             loadInitial();
         });
 
-        // Ensure data loads if coming from Back Cache
+        // 2. Force load on Back Button (BFCache Restore)
         window.addEventListener("pageshow", (event) => {
-            if (event.persisted) {
-                isLoaded = false;
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                isDataReady = false;
                 loadInitial();
             }
         });
