@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
         
-        /* Header Layout */
+        /* Header & Layout */
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h2 { color: #0056b3; margin: 0; }
         
@@ -72,11 +72,11 @@
         <h2>Rush Procurement Base</h2>
         <div>
             <button onclick="window.location.reload()" class="btn-search" style="background:#555;">Force Reload</button>
-            <a href="quotes.html" target="_blank" class="btn-add btn-grey">🔍 Quote Search</a>
-            <a href="add-req.html" target="_blank" class="btn-add btn-green">+ Add Req</a>
-            <a href="batch-req.html" target="_blank" class="btn-add btn-purple">⚡ Batch Req</a>
-            <a href="batch-quotes.html" target="_blank" class="btn-add btn-orange">⚡ Batch Quote</a>
-            <a href="add-quote.html" target="_blank" class="btn-add btn-blue">+ Add Quote</a>
+            <a href="quotes.html" class="btn-add btn-grey">🔍 Quote Search</a>
+            <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
+            <a href="batch-req.html" class="btn-add btn-purple">⚡ Batch Req</a>
+            <a href="batch-quotes.html" class="btn-add btn-orange">⚡ Batch Quote</a>
+            <a href="add-quote.html" class="btn-add btn-blue">+ Add Quote</a>
         </div>
     </div>
 
@@ -156,9 +156,7 @@
     <script type="module">
         import { db, collection, getDocs, getDoc, doc, updateDoc, query, where, limit } from './firebase-config.js';
 
-        // --- AUTH CHECK: Updated to check LOCAL STORAGE ---
-        const user = localStorage.getItem("austal_user") || sessionStorage.getItem("austal_user");
-        if (!user) window.location.href = "login.html";
+        if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
         const statusDiv = document.getElementById('statusBar');
@@ -364,10 +362,9 @@
 
             pageData.forEach(row => {
                 let deltaColor = "#333";
-                if(row.hasQuote) {
-                    if(row.rawDelta > 0) deltaColor = "#d9534f";
-                    if(row.rawDelta <= 0) deltaColor = "#28a745";
-                }
+                if(row.hasQuote && row.rawDelta > 0) deltaColor = "#d9534f";
+                if(row.hasQuote && row.rawDelta <= 0) deltaColor = "#28a745";
+                
                 let rankColor = "#ccc";
                 if (row.isBestRank) rankColor = "#28a745";
                 else if (row.rank == '2') rankColor = "#ffc107";
