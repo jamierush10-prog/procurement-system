@@ -35,9 +35,8 @@
       padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; color: #333;
     }
     .search-row input[type="text"] { width: 340px; max-width: 100%; }
-    .help {
-      margin-top: 8px; font-size: 12px; color: #666; line-height: 1.3;
-    }
+    .help { margin-top: 8px; font-size: 12px; color: #666; line-height: 1.3; }
+
     .btn-nav {
       padding: 8px 16px; background-color: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer;
     }
@@ -50,7 +49,7 @@
 
     /* Table */
     .table-container { width: 100%; overflow-x: auto; background: white; padding: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 13px; min-width: 1700px; }
     thead th { position: sticky; top: 0; background-color: #6f42c1; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
     tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
     tbody tr:hover { background-color: #f1f1f1; }
@@ -79,21 +78,22 @@
   <div class="search-panel">
     <div class="search-row">
       <label for="searchKey">Quick Search</label>
-      <input id="searchKey" type="text" placeholder="Enter Part No or NSN (exact match)..." />
+      <input id="searchKey" type="text" placeholder="Enter Part No / NSN / Quote File..." />
       <select id="searchMode" title="Search Mode">
-        <option value="partOrNsn">Part No OR NSN</option>
-        <option value="partNo">Part No only</option>
-        <option value="nsn">NSN only</option>
+        <option value="partOrNsn">Part No OR NSN (exact)</option>
+        <option value="partNo">Part No only (exact)</option>
+        <option value="nsn">NSN only (exact)</option>
+        <option value="fileGlobal">Quote File (GLOBAL)</option>
       </select>
-      <button class="btn-nav" onclick="runSearch()">Search</button>
+      <button id="btnSearch" class="btn-nav" onclick="runSearch()">Search</button>
       <button class="btn-lite" onclick="clearQuickSearch()">Clear</button>
       <button class="btn-lite" onclick="clearColumnFilters()">Clear Filters</button>
       <button class="btn-lite" onclick="loadAllQuotes()">Load All (Slow)</button>
     </div>
     <div class="help">
-      • This page is now <b>search-first</b> to avoid scanning your entire database.<br/>
-      • Use exact match for speed (Part No / NSN). After results load, use the purple column filters to narrow further.<br/>
-      • “Load All (Slow)” is only for rare situations (it will scan the whole collection).
+      • This page is <b>search-first</b> to avoid scanning your entire database.<br/>
+      • <b>Quote File (GLOBAL)</b> searches across all quotes using the <code>quote_index</code> collection (no full scan).<br/>
+      • After results load, use the purple column filters to narrow further.
     </div>
   </div>
 
@@ -122,9 +122,6 @@
   <div class="pagination" id="paginationControls"></div>
 
   <script type="module">
-    // IMPORTANT:
-    // This file expects your ./firebase-config.js to export Firestore helpers the same way your old file did.
-    // You MUST export `where` from firebase-config.js for quick search to work.
     import { db, collection, getDocs, query, limit, orderBy, startAfter, where } from './firebase-config.js';
 
     // Auth Check
@@ -137,16 +134,21 @@
     const paginationDiv = document.getElementById('paginationControls');
     const searchKeyEl = document.getElementById('searchKey');
     const searchModeEl = document.getElementById('searchMode');
+    const btnSearch = document.getElementById('btnSearch');
 
     let flatData = [];
     let filteredData = [];
     let currentPage = 1;
     const itemsPerPage = 100;
-
     const COLS = 12;
 
     const s = (v) => (v === null || v === undefined) ? "" : String(v);
     const upper = (v) => s(v).toUpperCase();
+
+    function setBusy(isBusy) {
+      btnSearch.disabled = isBusy;
+      btnSearch.textContent = isBusy ? "Searching..." : "Search";
+    }
 
     function setTableMessage(msg) {
       tbody.innerHTML = `<tr><td colspan='${COLS}' style='text-align:center; padding:20px;'>${msg}</td></tr>`;
@@ -163,44 +165,128 @@
       document.querySelectorAll(selector).forEach(el => { el.value = ""; });
     }
 
-    // ---------- SEARCH-FIRST (NO FULL SCAN) ----------
+    // Build <=10 needles for array-contains-any (Firestore limit is 10)
+    function makeFileNeedles(raw) {
+      const norm = upper(raw).replace(/[^A-Z0-9]+/g, " ").trim();
+      const words = norm.split(/\s+/).filter(Boolean);
+      const needles = [];
+      const push = (t) => {
+        if (!t) return;
+        if (!needles.includes(t)) needles.push(t);
+      };
+
+      // prioritize full tokens first
+      for (const w of words) {
+        push(w);
+        if (needles.length >= 10) return needles;
+      }
+
+      // then prefixes (3..10 chars)
+      for (const w of words) {
+        for (let i = 3; i <= Math.min(10, w.length); i++) {
+          push(w.slice(0, i));
+          if (needles.length >= 10) return needles;
+        }
+      }
+
+      return needles;
+    }
+
+    function addIndexSnapshotToFlat(snapshot) {
+      resetData();
+      snapshot.forEach(d => {
+        const r = d.data();
+        flatData.push({
+          partNo: s(r.partNo),
+          desc: s(r.desc),
+          spmig: s(r.spmig),
+          nsn: s(r.nsn),
+          supplier: s(r.supplier),
+          rank: s(r.rank ?? 999),
+          date: s(r.date),
+          price: (() => {
+            const n = Number(r.price);
+            return Number.isFinite(n) ? n.toFixed(2) : s(r.price || "0.00");
+          })(),
+          mfg: s(r.mfg),
+          file: s(r.file),
+          qty: s(r.qty ?? 1),
+          lead: s(r.lead),
+        });
+      });
+    }
+
+    // ---------- SEARCH-FIRST ----------
     window.runSearch = async () => {
-      const key = s(searchKeyEl.value).trim();
-      if (!key) {
-        statusDiv.textContent = "Enter a Part No or NSN (exact match), then click Search.";
+      const raw = s(searchKeyEl.value).trim();
+      const mode = s(searchModeEl.value);
+
+      if (!raw) {
+        statusDiv.textContent = "Enter a Part No / NSN / Quote File, then click Search.";
         setTableMessage("Ready.");
         return;
       }
 
-      resetData();
+      setBusy(true);
       statusDiv.style.color = "#383d41";
       statusDiv.style.fontWeight = "normal";
-      statusDiv.textContent = `Searching for "${key}"...`;
+      statusDiv.textContent = `Searching (${mode}) for "${raw}"...`;
       setTableMessage("Searching...");
 
-      const mode = s(searchModeEl.value);
-      const partsRef = collection(db, "parts");
-
       try {
+        // --- GLOBAL Quote File search (no full scan) ---
+        if (mode === "fileGlobal") {
+          const needles = makeFileNeedles(raw);
+
+          if (needles.length === 0) {
+            statusDiv.textContent = "Please enter a Quote File search term.";
+            setTableMessage("Ready.");
+            setBusy(false);
+            return;
+          }
+
+          const idxRef = collection(db, "quote_index");
+          const snap = await getDocs(query(
+            idxRef,
+            where("fileTokens", "array-contains-any", needles),
+            limit(500)
+          ));
+
+          addIndexSnapshotToFlat(snap);
+
+          if (flatData.length === 0) {
+            statusDiv.textContent = `No results (GLOBAL Quote File) for "${raw}".`;
+            setTableMessage("No quotes found.");
+            setBusy(false);
+            return;
+          }
+
+          statusDiv.textContent = `Global Quote File search found ${flatData.length} quotes (showing up to 500).`;
+          filterData();
+          setBusy(false);
+          return;
+        }
+
+        // --- Part No / NSN (exact match) on parts collection ---
+        resetData();
+
+        const partsRef = collection(db, "parts");
         const snaps = [];
 
         if (mode === "partNo") {
-          snaps.push(await getDocs(query(partsRef, where("partNo", "==", key), limit(50))));
+          snaps.push(await getDocs(query(partsRef, where("partNo", "==", raw), limit(50))));
         } else if (mode === "nsn") {
-          snaps.push(await getDocs(query(partsRef, where("nsn", "==", key), limit(50))));
+          snaps.push(await getDocs(query(partsRef, where("nsn", "==", raw), limit(50))));
         } else {
-          // Part No OR NSN -> two queries + merge unique doc ids
           const [snapPart, snapNsn] = await Promise.all([
-            getDocs(query(partsRef, where("partNo", "==", key), limit(50))),
-            getDocs(query(partsRef, where("nsn", "==", key), limit(50))),
+            getDocs(query(partsRef, where("partNo", "==", raw), limit(50))),
+            getDocs(query(partsRef, where("nsn", "==", raw), limit(50))),
           ]);
           snaps.push(snapPart, snapNsn);
         }
 
         const docMap = new Map();
-        for (const snap of snaps) {
-          snap.forEach(d => { if (!docMap.has(d.id)) docMap.set(d.id, d); });
-        }
+        for (const snap of snaps) snap.forEach(d => { if (!docMap.has(d.id)) docMap.set(d.id, d); });
 
         const docs = Array.from(docMap.values());
         let partDocs = 0;
@@ -237,24 +323,27 @@
         });
 
         if (partDocs === 0 || flatData.length === 0) {
-          statusDiv.textContent = `No quotes found for "${key}". (No matching parts or no quotes on those parts.)`;
+          statusDiv.textContent = `No quotes found for "${raw}". (No matching parts or no quotes on those parts.)`;
           setTableMessage("No quotes found.");
+          setBusy(false);
           return;
         }
 
-        statusDiv.textContent = `Found ${flatData.length} quotes across ${partDocs} matching part record(s) for "${key}".`;
-        filterData(); // applies column filters + renders
+        statusDiv.textContent = `Found ${flatData.length} quotes across ${partDocs} matching part record(s) for "${raw}".`;
+        filterData();
       } catch (err) {
         console.error(err);
         statusDiv.textContent = "Error: " + err.message;
         statusDiv.style.color = "red";
         setTableMessage("Error loading quotes.");
+      } finally {
+        setBusy(false);
       }
     };
 
     window.clearQuickSearch = () => {
       searchKeyEl.value = "";
-      statusDiv.textContent = "Ready. Enter a Part No or NSN and click Search.";
+      statusDiv.textContent = "Ready. Enter a Part No / NSN / Quote File and click Search.";
       resetData();
       setTableMessage("Ready.");
     };
@@ -321,10 +410,7 @@
 
           totalScanned += snapshot.size;
           statusDiv.textContent = `Loading... scanned ${totalScanned} part records. Found ${flatData.length} quotes.`;
-
           lastDoc = snapshot.docs[snapshot.docs.length - 1];
-
-          // NOTE: no silent safety break; if you want a cap, make it explicit.
         }
 
         if (flatData.length === 0) {
@@ -350,6 +436,8 @@
     window.filterData = () => {
       const inputs = document.querySelectorAll('.col-search');
 
+      const fileNeedle = upper(inputs[9].value).replace(/\s+/g, ""); // ignore spaces in user input
+
       filteredData = flatData.filter(row => {
         if (!upper(row.partNo).includes(upper(inputs[0].value))) return false;
         if (!upper(row.desc).includes(upper(inputs[1].value))) return false;
@@ -360,7 +448,11 @@
         if (!s(row.date).includes(s(inputs[6].value))) return false;
         if (!s(row.price).includes(s(inputs[7].value))) return false;
         if (!upper(row.mfg).includes(upper(inputs[8].value))) return false;
-        if (!upper(row.file).includes(upper(inputs[9].value))) return false;
+
+        // Quote File: ignore spaces on both sides so "0987 company" still matches "0987_Company ABC"
+        const fileHay = upper(row.file).replace(/\s+/g, "");
+        if (!fileHay.includes(fileNeedle)) return false;
+
         if (!s(row.qty).includes(s(inputs[10].value))) return false;
         if (!upper(row.lead).includes(upper(inputs[11].value))) return false;
         return true;
@@ -372,8 +464,6 @@
 
     // ---------- RENDERING ----------
     function renderTable() {
-      tbody.innerHTML = "";
-
       if (filteredData.length === 0) {
         const msg = flatData.length === 0 ? "Ready. Use Quick Search above." : "No quotes found (after filters).";
         setTableMessage(msg);
@@ -408,8 +498,8 @@
           </tr>
         `;
       }
-      tbody.innerHTML = html;
 
+      tbody.innerHTML = html;
       updateControls();
     }
 
@@ -431,7 +521,7 @@
 
     // ---------- STARTUP ----------
     document.addEventListener("DOMContentLoaded", () => {
-      statusDiv.textContent = "Ready. Enter a Part No or NSN and click Search (no full scan).";
+      statusDiv.textContent = "Ready. Enter a Part No / NSN / Quote File and click Search (no full scan).";
       setTableMessage("Ready.");
 
       // Press Enter to search

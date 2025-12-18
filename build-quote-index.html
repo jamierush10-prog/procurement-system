@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Build Quote Index</title>
+  <style>
+    body { font-family: system-ui; padding: 16px; }
+    button { padding: 10px 14px; font-weight: 700; }
+    pre { background:#111; color:#0f0; padding:12px; border-radius:8px; height: 65vh; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h2>Build quote_index from parts</h2>
+  <p>Creates one document per quote so you can search Quote File globally without scanning.</p>
+  <button id="go">Build / Rebuild Index</button>
+  <pre id="log"></pre>
+
+  <script type="module">
+    import { db, collection, getDocs, query, limit, orderBy, startAfter, doc, writeBatch } from "./firebase-config.js";
+
+    const logEl = document.getElementById("log");
+    const log = (m) => { logEl.textContent += m + "\n"; logEl.scrollTop = logEl.scrollHeight; };
+
+    const up = (v) => (v ?? "").toString().toUpperCase();
+    const clean = (v) => up(v).replace(/[^A-Z0-9]+/g, " ").trim();
+
+    function makeFileTokens(file) {
+      const parts = clean(file).split(/\s+/).filter(Boolean);
+      const set = new Set();
+
+      for (const p of parts) {
+        set.add(p);
+        for (let i = 3; i <= Math.min(10, p.length); i++) set.add(p.slice(0, i));
+      }
+      return Array.from(set);
+    }
+
+    async function commitBatch(items) {
+      const batch = writeBatch(db);
+      for (const it of items) {
+        batch.set(doc(db, "quote_index", it.id), it.data, { merge: true });
+      }
+      await batch.commit();
+    }
+
+    document.getElementById("go").addEventListener("click", async () => {
+      log("Starting…");
+
+      const PARTS_CHUNK = 800; // reads per page
+      const WRITE_CHUNK = 450; // writes per batch (< 500)
+
+      let last = null;
+      let scannedParts = 0;
+      let indexedQuotes = 0;
+
+      while (true) {
+        const q = last
+          ? query(collection(db, "parts"), orderBy("partNo"), startAfter(last), limit(PARTS_CHUNK))
+          : query(collection(db, "parts"), orderBy("partNo"), limit(PARTS_CHUNK));
+
+        const snap = await getDocs(q);
+        if (snap.empty) break;
+
+        scannedParts += snap.size;
+
+        const pending = [];
+        snap.forEach((d) => {
+          const p = d.data();
+          const quotes = Array.isArray(p.quotes) ? p.quotes : [];
+
+          quotes.forEach((qt, idx) => {
+            indexedQuotes++;
+
+            const file = (qt.file || "").toString();
+            const id = `${d.id}__${idx}`;
+
+            pending.push({
+              id,
+              data: {
+                sourcePartId: d.id,
+                quoteIdx: idx,
+                partNo: p.partNo || "",
+                desc: p.desc || "",
+                spmig: p.spmig || "",
+                nsn: p.nsn || "",
+                supplier: qt.supplier || "",
+                rank: qt.rank ?? 999,
+                date: qt.date || "",
+                price: qt.price || "",
+                mfg: qt.mfg || "",
+                file,
+                qty: qt.qty ?? 1,
+                lead: qt.lead || "",
+                fileTokens: makeFileTokens(file),
+              }
+            });
+          });
+        });
+
+        for (let i = 0; i < pending.length; i += WRITE_CHUNK) {
+          await commitBatch(pending.slice(i, i + WRITE_CHUNK));
+        }
+
+        last = snap.docs[snap.docs.length - 1];
+        log(`Scanned parts: ${scannedParts} | Indexed quotes: ${indexedQuotes}`);
+      }
+
+      log("DONE ✅");
+      log(`Total parts scanned: ${scannedParts}`);
+      log(`Total quotes indexed: ${indexedQuotes}`);
+      log(`Now use quotes.html -> Search Mode: Quote File (GLOBAL).`);
+    });
+  </script>
+</body>
+</html>

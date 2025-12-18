@@ -1,6 +1,9 @@
 // firebase-config.js (CDN ESM — works in browser with Live Server)
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+const FIREBASE_VERSION = "10.12.5";
+
+import { initializeApp } from `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`;
+
 import {
   getFirestore,
   collection,
@@ -9,10 +12,15 @@ import {
   limit,
   orderBy,
   startAfter,
-  where
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  where,
+  doc,
+  writeBatch
+} from `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`;
 
-import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+import {
+  getAnalytics,
+  isSupported
+} from `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-analytics.js`;
 
 const firebaseConfig = {
   apiKey: "AIzaSyCEtXeuaWJRg3PM7vXJZnRuJDfq8ldT1Tc",
@@ -27,7 +35,7 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Optional analytics (won’t break if unsupported)
+// Optional analytics (won’t break file:// or unsupported environments)
 export let analytics = null;
 (async () => {
   try {
@@ -37,5 +45,15 @@ export let analytics = null;
   }
 })();
 
-// re-export helpers for quotes.html
-export { collection, getDocs, query, limit, orderBy, startAfter, where };
+// Re-export helpers for your pages
+export {
+  collection,
+  getDocs,
+  query,
+  limit,
+  orderBy,
+  startAfter,
+  where,
+  doc,
+  writeBatch
+};
