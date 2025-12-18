@@ -7,330 +7,244 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
         
-        .nav-link { display: inline-block; margin-bottom: 20px; color: #0056b3; text-decoration: none; font-weight: bold; }
-        .nav-link:hover { text-decoration: underline; }
-
-        /* Search Card */
-        .search-card {
-            background: white; padding: 25px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px;
-            border-top: 5px solid #6f42c1;
+        /* Header */
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 3px solid #6f42c1; padding-bottom: 10px; }
+        h2 { color: #6f42c1; margin: 0; display: flex; align-items: center; }
+        
+        /* Buttons */
+        .btn-red { 
+            padding: 8px 16px; background-color: #dc3545; color: white; text-decoration: none; 
+            border-radius: 4px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; 
         }
-        
-        h2 { margin-top: 0; color: #6f42c1; }
-        
-        /* Grid Layout */
-        .search-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
-        
-        label { display: block; font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #555; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-red:hover { background-color: #c82333; }
 
-        .btn-container { display: flex; gap: 10px; margin-top: 24px; align-items: flex-end; }
-        
-        .btn-search { 
-            background-color: #6f42c1; color: white; border: none; padding: 10px 25px; 
-            border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1;
-        }
-        .btn-search:hover { background-color: #5a32a3; }
-        
-        .btn-reset {
-            background-color: #eee; color: #333; border: none; padding: 10px 20px;
-            border-radius: 4px; cursor: pointer;
-        }
-        .btn-reset:hover { background-color: #ddd; }
-
-        /* Table & Buttons */
-        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; min-width: 1400px; font-size: 14px; white-space: nowrap; }
-        thead th { position: sticky; top: 0; background-color: #444; color: white; padding: 12px 15px; text-align: left; }
-        tbody td { padding: 10px 15px; border-bottom: 1px solid #eee; }
+        /* Table */
+        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 80vh; }
+        table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 13px; }
+        thead th { position: sticky; top: 0; background-color: #6f42c1; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
+        tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
         tbody tr:hover { background-color: #f1f1f1; }
 
+        /* Inputs */
+        .col-search { width: 90%; padding: 4px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; color: #333; }
         .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
+
+        /* Badges */
+        .rank-badge { padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.9em; }
         
-        .btn-icon { padding: 4px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
-        .btn-icon:hover { background: #eee; }
-        .btn-del:hover { background: #ffe6e6; border-color: #ffcccc; color: red; }
-
-        /* Rank Badges */
-        .rank-badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; color: white; display: inline-block; font-size: 0.9em; }
-
-        /* --- EDIT MODAL STYLES --- */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-card { background: white; padding: 30px; border-radius: 8px; width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
-        .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
-        .form-row { display: flex; gap: 15px; }
-        .form-group { margin-bottom: 15px; flex: 1; }
-        .form-group textarea, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .btn-save { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-cancel { background: #ccc; color: #333; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
+        .page-info { font-weight: bold; color: #555; }
+        .btn-nav { padding: 8px 16px; background-color: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
     </style>
 </head>
 <body>
 
-    <a href="index.html" class="nav-link">&#8592; Back to Dashboard</a>
-
-    <div class="search-card">
-        <h2>🔍 Search Quote History</h2>
-        <div class="search-grid">
-            <div><label>Part Number</label><input type="text" id="s_part" placeholder="e.g. 162"></div>
-            <div><label>Description</label><input type="text" id="s_desc" placeholder="e.g. Valve"></div>
-            <div><label>Supplier</label><input type="text" id="s_supp" placeholder="e.g. ABC"></div>
-            <div><label>Quote File Name</label><input type="text" id="s_file" placeholder="e.g. PDF"></div>
-            <div class="btn-container">
-                <button onclick="runDeepSearch()" class="btn-search">Search</button>
-                <button onclick="resetSearch()" class="btn-reset">Reset</button>
-            </div>
-        </div>
-        <div id="status" style="margin-top:10px; color:#666; font-style:italic;"></div>
+    <div class="header-container">
+        <h2>🔍 Quote History Search</h2>
+        <a href="index.html" class="btn-red">Close & Refresh</a>
     </div>
+
+    <div id="status" style="margin-bottom:10px; font-style:italic; color:#666;">Initializing...</div>
 
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th style="width: 80px;">Actions</th> <th>Part No</th>
-                    <th>Description</th>
-                    <th>Supplier</th>
-                    <th>Rank</th>
-                    <th>Quote Date</th> <th>Price</th> <th>MFG Part No</th> <th>Quote File</th>
-                    <th>Qty</th>
-                    <th>Lead Time</th>
+                    <th style="width:120px;">Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th style="min-width:200px;">Description<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>SPMIG<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>NSN<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Supplier<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Quote Date<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Price<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>MFG Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Quote File<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Qty<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Lead Time<br><input type="text" class="col-search" onkeyup="filterData()"></th>
                 </tr>
             </thead>
-            <tbody id="resultsBody">
-                <tr><td colspan="11" style="text-align:center; padding:20px;">Enter search terms above to find quotes.</td></tr>
-            </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
-    <div class="modal-overlay" id="editQuoteModal">
-        <div class="modal-card">
-            <h3 class="modal-title">✏️ Edit Quote Record</h3>
-            <input type="hidden" id="eq_partNo"> <input type="hidden" id="eq_index">  <div class="form-row">
-                <div class="form-group"><label>Supplier Name</label><input type="text" id="eq_supplier"></div>
-                <div class="form-group">
-                    <label>Rank</label>
-                    <select id="eq_rank">
-                        <option value="1">1 (Winner)</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="77">77</option>
-                        <option value="88">88</option>
-                        <option value="99">99</option>
-                        <option value="999">No Rank</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>MFG Number</label><input type="text" id="eq_mfg"></div>
-                <div class="form-group"><label>Quote File Name</label><input type="text" id="eq_file"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Price (USD)</label><input type="number" id="eq_price" step="0.01"></div>
-                <div class="form-group"><label>Qty Quoted</label><input type="number" id="eq_qty"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Lead Time</label><input type="text" id="eq_lead"></div>
-                <div class="form-group"><label>Valid Until</label><input type="date" id="eq_valid"></div>
-            </div>
-            <div class="form-group"><label>Notes</label><textarea id="eq_notes" rows="3"></textarea></div>
-
-            <div class="modal-actions">
-                <button onclick="document.getElementById('editQuoteModal').style.display='none'" class="btn-cancel">Cancel</button>
-                <button onclick="saveQuoteEdit()" class="btn-save">Save Changes</button>
-            </div>
-        </div>
-    </div>
+    <div class="pagination" id="paginationControls"></div>
 
     <script type="module">
-        import { db, collection, getDocs, doc, getDoc, updateDoc } from './firebase-config.js';
+        import { db, collection, getDocs, query, limit, orderBy, startAfter } from './firebase-config.js';
 
-        if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
-
-        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') runDeepSearch(); });
-
-        window.resetSearch = () => {
-            document.querySelectorAll('input').forEach(i => i.value = "");
-            document.getElementById('resultsBody').innerHTML = "<tr><td colspan='11' style='text-align:center; padding:20px;'>Search cleared.</td></tr>";
-            document.getElementById('status').textContent = "";
+        // Auth Check
+        if (!sessionStorage.getItem("austal_user") && !localStorage.getItem("austal_user")) {
+            window.location.href = "login.html";
         }
 
-        window.runDeepSearch = async () => {
-            const partTerm = document.getElementById('s_part').value.trim().toUpperCase();
-            const descTerm = document.getElementById('s_desc').value.trim().toUpperCase();
-            const suppTerm = document.getElementById('s_supp').value.trim().toUpperCase();
-            const fileTerm = document.getElementById('s_file').value.trim().toUpperCase();
-            
-            const tbody = document.getElementById('resultsBody');
-            const status = document.getElementById('status');
+        const tbody = document.getElementById('tableBody');
+        const statusDiv = document.getElementById('status');
+        const paginationDiv = document.getElementById('paginationControls');
 
-            if (!partTerm && !descTerm && !suppTerm && !fileTerm) {
-                alert("Please enter at least one search term.");
-                return;
-            }
+        let flatData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const itemsPerPage = 100; // Increased to 100 as requested
 
-            tbody.innerHTML = "<tr><td colspan='11' style='text-align:center; padding:20px;'>Scanning database...</td></tr>";
-            status.textContent = "Downloading data...";
+        // 1. CHUNKED LOAD LOGIC (Gets Everything)
+        window.loadQuotes = async () => {
+            statusDiv.textContent = "Connecting to database...";
+            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Scanning full database (Batching)...</td></tr>";
+
+            flatData = [];
+            const CHUNK_SIZE = 4000; // Safe batch size
+            let lastDoc = null;
+            let keepScanning = true;
+            let totalScanned = 0;
 
             try {
-                const querySnapshot = await getDocs(collection(db, "parts"));
-                let matchCount = 0;
-                let rowsHTML = "";
+                while (keepScanning) {
+                    // Build Query
+                    let q;
+                    if (lastDoc) {
+                        q = query(collection(db, "parts"), orderBy("partNo"), startAfter(lastDoc), limit(CHUNK_SIZE));
+                    } else {
+                        q = query(collection(db, "parts"), orderBy("partNo"), limit(CHUNK_SIZE));
+                    }
 
-                status.textContent = `Scanning ${querySnapshot.size} records...`;
+                    const snapshot = await getDocs(q);
 
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const partNo = data.partNo || "";
-                    const desc = (data.desc || "").toUpperCase();
-                    
-                    const partMatch = !partTerm || partNo.includes(partTerm);
-                    const descMatch = !descTerm || desc.includes(descTerm);
+                    if (snapshot.empty) {
+                        keepScanning = false;
+                        break;
+                    }
 
-                    if (partMatch && descMatch) {
+                    // Process Batch
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        
                         if (data.quotes && data.quotes.length > 0) {
-                            // Important: Use Index to track quote for edit/delete
-                            data.quotes.forEach((q, index) => {
-                                const supplier = (q.supplier || "").toUpperCase();
-                                const fileName = (q.file || "").toUpperCase();
-
-                                const suppMatch = !suppTerm || supplier.includes(suppTerm);
-                                const fileMatch = !fileTerm || fileName.includes(fileTerm);
-
-                                if (suppMatch && fileMatch) {
-                                    matchCount++;
-                                    
-                                    // Style Rank
-                                    let rankColor = '#ccc';
-                                    if(q.rank == 1) rankColor = '#28a745';
-                                    if(q.rank == 2) rankColor = '#ffc107';
-                                    if(q.rank >= 77) rankColor = '#343a40';
-
-                                    rowsHTML += `
-                                        <tr>
-                                            <td>
-                                                <button class="btn-icon" onclick="openEdit('${data.partNo}', ${index})" title="Edit">✏️</button>
-                                                <button class="btn-icon btn-del" onclick="deleteQuote('${data.partNo}', ${index})" title="Delete">🗑️</button>
-                                            </td>
-                                            <td><a href="detail.html?part=${data.partNo}" style="color:#0056b3; font-weight:bold;">${data.partNo}</a></td>
-                                            <td>${data.desc || '-'}</td>
-                                            <td>${q.supplier}</td>
-                                            <td><span class="rank-badge" style="background:${rankColor};">${q.rank == 999 ? 'NR' : q.rank}</span></td>
-                                            <td>${q.date || '-'}</td>
-                                            <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
-                                            <td>${q.mfg || '-'}</td>
-                                            <td>${q.file || '-'}</td>
-                                            <td>${q.qty}</td>
-                                            <td>${q.lead}</td>
-                                        </tr>
-                                    `;
-                                }
+                            data.quotes.forEach(quote => {
+                                flatData.push({
+                                    partNo: data.partNo || "",
+                                    desc: data.desc || "",
+                                    spmig: data.spmig || "", 
+                                    nsn: data.nsn || "",     
+                                    supplier: quote.supplier || "",
+                                    rank: (quote.rank || 999).toString(),
+                                    date: quote.date || "",
+                                    price: quote.price ? parseFloat(quote.price).toFixed(2) : "0.00",
+                                    mfg: quote.mfg || "",
+                                    file: quote.file || "",
+                                    qty: (quote.qty || 1).toString(),
+                                    lead: quote.lead || ""
+                                });
                             });
                         }
-                    }
-                });
+                    });
 
-                if (matchCount === 0) {
-                    tbody.innerHTML = "<tr><td colspan='11' style='text-align:center; padding:20px;'>No matching quotes found.</td></tr>";
-                    status.textContent = "Search complete. 0 results.";
-                } else {
-                    tbody.innerHTML = rowsHTML;
-                    status.textContent = `Search complete. Found ${matchCount} matching quotes.`;
+                    // Update Status
+                    totalScanned += snapshot.size;
+                    statusDiv.textContent = `Scanning... Checked ${totalScanned} parts. Found ${flatData.length} quotes so far.`;
+                    
+                    // Prep next loop
+                    lastDoc = snapshot.docs[snapshot.docs.length - 1];
+                    
+                    // Safety break (optional limit, remove if you really want 100k+)
+                    if (totalScanned > 50000) keepScanning = false; 
                 }
+
+                statusDiv.textContent = `Complete. Loaded ${flatData.length} quotes from ${totalScanned} records.`;
+                statusDiv.style.color = "green";
+                statusDiv.style.fontWeight = "bold";
+                filterData();
 
             } catch (err) {
                 console.error(err);
-                tbody.innerHTML = `<tr><td colspan='11' style='color:red; text-align:center;'>Error: ${err.message}</td></tr>`;
+                statusDiv.textContent = "Error loading data: " + err.message;
+                statusDiv.style.color = "red";
             }
+        };
+
+        // 2. FILTER LOGIC
+        window.filterData = () => {
+            const inputs = document.querySelectorAll('.col-search');
+            
+            filteredData = flatData.filter(row => {
+                if (!row.partNo.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
+                if (!row.desc.toUpperCase().includes(inputs[1].value.toUpperCase())) return false;
+                if (!row.spmig.toUpperCase().includes(inputs[2].value.toUpperCase())) return false;
+                if (!row.nsn.toUpperCase().includes(inputs[3].value.toUpperCase())) return false;
+                if (!row.supplier.toUpperCase().includes(inputs[4].value.toUpperCase())) return false;
+                if (!row.rank.includes(inputs[5].value)) return false;
+                if (!row.date.includes(inputs[6].value)) return false;
+                if (!row.price.includes(inputs[7].value)) return false;
+                if (!row.mfg.toUpperCase().includes(inputs[8].value.toUpperCase())) return false;
+                if (!row.file.toUpperCase().includes(inputs[9].value.toUpperCase())) return false;
+                if (!row.qty.includes(inputs[10].value)) return false;
+                if (!row.lead.toUpperCase().includes(inputs[11].value.toUpperCase())) return false;
+                return true;
+            });
+
+            currentPage = 1;
+            renderTable();
+        };
+
+        // 3. RENDER TABLE
+        function renderTable() {
+            tbody.innerHTML = "";
+            if (filteredData.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>No quotes found matching filters.</td></tr>";
+                updateControls();
+                return;
+            }
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            pageData.forEach(row => {
+                let rankColor = "#ccc";
+                if(row.rank === '1') rankColor = "#28a745";
+                if(row.rank === '2') rankColor = "#ffc107";
+
+                const tr = `
+                    <tr>
+                        <td style="font-weight:bold; color:#6f42c1;">${row.partNo}</td>
+                        <td>${row.desc}</td>
+                        <td>${row.spmig}</td>
+                        <td>${row.nsn}</td>
+                        <td>${row.supplier}</td>
+                        <td><span class="rank-badge" style="background:${rankColor}">${row.rank}</span></td>
+                        <td>${row.date}</td>
+                        <td class="col-currency">$${row.price}</td>
+                        <td>${row.mfg}</td>
+                        <td>${row.file}</td>
+                        <td>${row.qty}</td>
+                        <td>${row.lead}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += tr;
+            });
+            updateControls();
         }
 
-        // --- EDIT FUNCTIONS ---
-        
-        window.openEdit = async (partNo, index) => {
-            try {
-                const docRef = doc(db, "parts", partNo);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const q = docSnap.data().quotes[index];
-                    
-                    // Populate Modal
-                    document.getElementById('eq_partNo').value = partNo;
-                    document.getElementById('eq_index').value = index;
-                    document.getElementById('eq_supplier').value = q.supplier;
-                    document.getElementById('eq_rank').value = q.rank;
-                    document.getElementById('eq_mfg').value = q.mfg || "";
-                    document.getElementById('eq_file').value = q.file || "";
-                    document.getElementById('eq_price').value = q.price;
-                    document.getElementById('eq_qty').value = q.qty;
-                    document.getElementById('eq_lead').value = q.lead;
-                    document.getElementById('eq_valid').value = q.valid || "";
-                    document.getElementById('eq_notes').value = q.notes || "";
-                    
-                    document.getElementById('editQuoteModal').style.display = 'flex';
-                }
-            } catch (err) { alert("Error opening quote: " + err.message); }
+        function updateControls() {
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+            paginationDiv.innerHTML = `
+                <button onclick="prevPage()" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
+                <span class="page-info">Showing ${Math.min(itemsPerPage, totalItems)} of ${totalItems} Records | Page ${currentPage} of ${totalPages}</span>
+                <button onclick="nextPage()" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
+            `;
         }
 
-        window.saveQuoteEdit = async () => {
-            const partNo = document.getElementById('eq_partNo').value;
-            const index = Number(document.getElementById('eq_index').value);
-            const newRank = Number(document.getElementById('eq_rank').value);
+        // Global functions
+        window.filterData = filterData;
+        window.prevPage = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
+        window.nextPage = () => { if(currentPage < Math.ceil(filteredData.length/itemsPerPage)) { currentPage++; renderTable(); } };
 
-            try {
-                const docRef = doc(db, "parts", partNo);
-                const docSnap = await getDoc(docRef);
-                const updatedQuotes = [...docSnap.data().quotes];
+        // Start
+        document.addEventListener("DOMContentLoaded", loadQuotes);
 
-                // Single Winner Logic
-                if (newRank === 1) {
-                    updatedQuotes.forEach((q, i) => {
-                        if (q.rank === 1 && i !== index) q.rank = 3; 
-                    });
-                }
-
-                updatedQuotes[index] = {
-                    ...updatedQuotes[index],
-                    supplier: document.getElementById('eq_supplier').value,
-                    rank: newRank,
-                    mfg: document.getElementById('eq_mfg').value,
-                    file: document.getElementById('eq_file').value,
-                    price: Number(document.getElementById('eq_price').value),
-                    qty: Number(document.getElementById('eq_qty').value),
-                    lead: document.getElementById('eq_lead').value,
-                    valid: document.getElementById('eq_valid').value,
-                    notes: document.getElementById('eq_notes').value,
-                };
-
-                await updateDoc(docRef, { quotes: updatedQuotes });
-                document.getElementById('editQuoteModal').style.display = 'none';
-                
-                // Refresh Search to show changes
-                runDeepSearch();
-                
-            } catch(err) { alert("Error saving: " + err.message); }
-        }
-
-        window.deleteQuote = async (partNo, index) => {
-            if(!confirm("Are you sure you want to delete this quote record?")) return;
-            try {
-                const docRef = doc(db, "parts", partNo);
-                const docSnap = await getDoc(docRef);
-                const updatedQuotes = [...docSnap.data().quotes];
-                
-                updatedQuotes.splice(index, 1);
-                await updateDoc(docRef, { quotes: updatedQuotes });
-                
-                runDeepSearch(); // Refresh list
-                
-            } catch(err) { alert("Error deleting: " + err.message); }
-        }
-
-        // Expose functions globally for HTML onclick
-        window.openEdit = openEdit;
-        window.saveQuoteEdit = saveQuoteEdit;
-        window.deleteQuote = deleteQuote;
     </script>
 </body>
 </html>

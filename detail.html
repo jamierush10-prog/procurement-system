@@ -3,414 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Part Detail View</title>
+    <title>Part Details</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #fff; color: #333; }
         
-        .nav-link { display: inline-block; margin-bottom: 20px; color: #0056b3; text-decoration: none; font-weight: bold; font-size: 14px; }
-        .nav-link:hover { text-decoration: underline; }
+        h1 { color: #0056b3; margin-bottom: 5px; }
+        .sub-header { color: #666; margin-bottom: 20px; font-size: 14px; }
 
-        /* Part Header */
-        .part-header-card {
-            background: white; padding: 25px; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px;
-            border-left: 6px solid #0056b3;
-        }
-        .part-title { margin: 0; color: #0056b3; font-size: 1.8em; margin-bottom: 15px; }
-        .specs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .spec-box { background: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #e9ecef; }
-        .spec-label { display: block; font-size: 0.8em; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
-        .spec-value { font-weight: 600; font-size: 1.2em; color: #212529; }
+        /* Card Layout */
+        .info-cards { display: flex; gap: 20px; margin-bottom: 30px; }
+        .card { flex: 1; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; }
+        .card label { display: block; font-weight: bold; font-size: 11px; color: #666; margin-bottom: 5px; text-transform: uppercase; }
+        .card div { font-size: 16px; font-weight: 500; }
 
+        /* Sections */
+        h3 { border-bottom: 2px solid #0056b3; padding-bottom: 5px; margin-top: 30px; color: #333; font-size: 16px; }
+        
         /* Tables */
-        h3 { color: #333; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .table-container { width: 100%; overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; min-width: 1200px; font-size: 14px; }
-        thead tr { background-color: #0056b3; color: white; text-align: left; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #dddddd; }
-        tbody tr:hover { background-color: #f1f1f1; }
-        
-        .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
-        .req-tag { background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
-        .hull-badge { background: #17a2b8; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
-        .buyer-badge { background-color: #fff0f6; color: #c41d7f; border: 1px solid #ffadd2; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
-        
-        /* Buttons & Icons */
-        .btn-icon { padding: 4px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
-        .btn-icon:hover { background: #eee; }
-        .btn-del:hover { background: #ffe6e6; border-color: #ffcccc; color: red; }
-        .btn-note { border: none; background: none; font-size: 1.2em; cursor: pointer; }
-        .btn-note:hover { transform: scale(1.2); transition: transform 0.2s; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th { background: #0056b3; color: white; text-align: left; padding: 8px; }
+        td { border-bottom: 1px solid #eee; padding: 8px; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
 
-        /* Rank Badges */
-        .rank-badge { 
-            padding: 4px 10px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; display: inline-block;
-            transition: opacity 0.2s; border: 1px solid rgba(0,0,0,0.1);
-        }
-        .rank-badge:hover { opacity: 0.8; text-decoration: underline; }
-        .rank-1 { background-color: #28a745; } 
-        .rank-2 { background-color: #ffc107; color: #333; }
-        .rank-3 { background-color: #fd7e14; }
-        .rank-other { background-color: #6c757d; }
-        .rank-high { background-color: #343a40; } 
+        /* Badges */
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; color: white; }
+        .bg-green { background: #28a745; }
+        .bg-grey { background: #6c757d; }
+        .bg-blue { background: #17a2b8; }
 
-        /* --- MODALS --- */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-card { background: white; padding: 30px; border-radius: 8px; width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
-        .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
-        
-        .mini-modal { width: 300px; padding: 20px; }
-        
-        .form-row { display: flex; gap: 15px; }
-        .form-group { margin-bottom: 15px; flex: 1; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .btn-save { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-cancel { background: #ccc; color: #333; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        /* Buttons */
+        .btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 12px; }
+        .btn-add { background-color: #28a745; float: right; margin-top: -30px; }
+        .btn-edit { background-color: #ffc107; color: black; }
+        .btn-del { background-color: #dc3545; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 20px; border-radius: 5px; width: 400px; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+        .form-row { margin-bottom: 10px; }
+        .form-row label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 3px; }
+        .form-row input, .form-row select { width: 100%; padding: 6px; box-sizing: border-box; }
+        .modal-btns { text-align: right; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <a href="index.html" class="nav-link">&#8592; Back to Master List</a>
+    <div id="loading">Loading details...</div>
 
-    <div class="part-header-card">
-        <h2 class="part-title" id="display-part-no">Loading...</h2>
-        <div class="specs-grid">
-            <div class="spec-box">
-                <span class="spec-label">Description</span>
-                <span class="spec-value" id="d-desc">-</span>
+    <div id="content" style="display:none;">
+        <h1 id="partNoDisplay">---</h1>
+        
+        <div class="info-cards">
+            <div class="card">
+                <label>Description</label>
+                <div id="descDisplay">-</div>
             </div>
-            <div class="spec-box">
-                <span class="spec-label">Active Projects</span>
-                <span class="spec-value" id="d-count">0</span>
+            <div class="card">
+                <label>Active Projects</label>
+                <div id="projectCount">0</div>
             </div>
         </div>
-    </div>
 
-    <h3>📋 Demand (Requisitions)</h3>
-    <div class="table-container">
+        <h3>📄 Demand (Requisitions)</h3>
         <table>
             <thead>
                 <tr>
                     <th>Req ID</th>
-                    <th>Buyer</th> <th>Hull / Project</th>
+                    <th>Buyer</th>
+                    <th>Hull / Project</th>
                     <th>Qty Required</th>
                     <th>UOM</th>
                     <th>Status</th>
                     <th>Date Added</th>
                 </tr>
             </thead>
-            <tbody id="reqs-body"></tbody>
+            <tbody id="reqTable"></tbody>
         </table>
-    </div>
 
-    <h3>💰 Supply (Quotes)</h3>
-    <div class="table-container">
+        <h3>
+            💰 Supply (Quotes)
+            <button onclick="openQuoteModal()" class="btn btn-add">+ Add Quote</button>
+        </h3>
         <table>
             <thead>
                 <tr>
-                    <th style="width: 80px;">Actions</th>
+                    <th>Actions</th>
                     <th>Rank</th>
                     <th>Supplier</th>
                     <th>Quote Date</th>
-                    <th>MFG No</th> 
-                    <th>Quote File</th> 
-                    <th>QTY</th> 
+                    <th>MFG No</th>
+                    <th>Quote File</th>
+                    <th>QTY</th>
                     <th>Price</th>
-                    <th>Total</th> 
+                    <th>Total</th>
                     <th>Lead Time</th>
-                    <th>Valid Until</th> 
-                    <th>Notes</th> 
+                    <th>Valid Until</th>
                 </tr>
             </thead>
-            <tbody id="quotes-body"></tbody>
+            <tbody id="quoteTable"></tbody>
         </table>
     </div>
 
-    <div class="modal-overlay" id="editQuoteModal">
-        <div class="modal-card">
-            <h3 class="modal-title">✏️ Edit Quote Record</h3>
-            <input type="hidden" id="eq_index">
+    <div class="modal-overlay" id="quoteModal">
+        <div class="modal-box">
+            <h3 id="modalTitle" style="margin-top:0;">Add Quote</h3>
+            <input type="hidden" id="q_index">
             
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Supplier Name</label>
-                    <input type="text" id="eq_supplier">
-                </div>
-                <div class="form-group">
-                    <label>Rank</label>
-                    <select id="eq_rank">
-                        <option value="1">1 (Winner)</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="77">77</option>
-                        <option value="88">88</option>
-                        <option value="99">99</option>
-                        <option value="999">No Rank</option>
-                    </select>
-                </div>
+            <div class="form-row"><label>Supplier Name</label><input type="text" id="q_supplier"></div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-row" style="width:50%"><label>Quote Date</label><input type="date" id="q_date"></div>
+                <div class="form-row" style="width:50%"><label>Valid Until</label><input type="date" id="q_valid"></div>
             </div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-row" style="width:50%"><label>Price (Unit)</label><input type="number" id="q_price" step="0.01"></div>
+                <div class="form-row" style="width:50%"><label>Min Qty</label><input type="number" id="q_qty" value="1"></div>
+            </div>
+            <div class="form-row"><label>Lead Time (Days/Weeks)</label><input type="text" id="q_lead"></div>
+            <div class="form-row"><label>MFG Part No</label><input type="text" id="q_mfg"></div>
+            <div class="form-row"><label>Quote File Ref</label><input type="text" id="q_file"></div>
             
-            <div class="form-row">
-                <div class="form-group"><label>MFG Number</label><input type="text" id="eq_mfg"></div>
-                <div class="form-group"><label>Quote File Name</label><input type="text" id="eq_file"></div>
+            <div class="modal-btns">
+                <button onclick="closeQuoteModal()" class="btn bg-grey">Cancel</button>
+                <button onclick="saveQuote()" class="btn bg-green">Save Quote</button>
             </div>
-            <div class="form-row">
-                <div class="form-group"><label>Price (USD)</label><input type="number" id="eq_price" step="0.01"></div>
-                <div class="form-group"><label>Qty Quoted</label><input type="number" id="eq_qty"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Lead Time</label><input type="text" id="eq_lead"></div>
-                <div class="form-group"><label>Valid Until (Exp Date)</label><input type="date" id="eq_valid"></div>
-            </div>
-            <div class="form-group"><label>Notes</label><textarea id="eq_notes" rows="3"></textarea></div>
-
-            <div class="modal-actions">
-                <button onclick="document.getElementById('editQuoteModal').style.display='none'" class="btn-cancel">Cancel</button>
-                <button onclick="saveQuoteEdit()" class="btn-save">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="quickRankModal">
-        <div class="modal-card mini-modal">
-            <h3 class="modal-title">Change Rank</h3>
-            <input type="hidden" id="qr_index">
-            <div class="form-group">
-                <label>Select New Rank:</label>
-                <select id="qr_select">
-                    <option value="1">1 (Winner)</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="77">77</option>
-                    <option value="88">88</option>
-                    <option value="99">99</option>
-                    <option value="999">No Rank</option>
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button onclick="document.getElementById('quickRankModal').style.display='none'" class="btn-cancel">Cancel</button>
-                <button onclick="saveQuickRank()" class="btn-save">Update</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="notesModal">
-        <div class="modal-card" style="width: 300px; text-align: center;">
-            <h3 class="modal-title">📝 Quote Notes</h3>
-            <p id="note-text" style="font-size: 1.1em; line-height: 1.5; color: #555;"></p>
-            <button onclick="document.getElementById('notesModal').style.display='none'" class="btn-cancel" style="margin-top:20px; width:100%;">Close</button>
         </div>
     </div>
 
     <script type="module">
         import { db, doc, getDoc, updateDoc } from './firebase-config.js';
 
-        if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
+        // Auth Check (localStorage first)
+        const user = localStorage.getItem("austal_user") || sessionStorage.getItem("austal_user");
+        if (!user) window.location.href = "login.html";
 
-        let currentPartNo = null;
+        const params = new URLSearchParams(window.location.search);
+        const partNo = params.get('part');
+        let currentDoc = null;
+        let isEditing = false;
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            const params = new URLSearchParams(window.location.search);
-            currentPartNo = params.get('part');
-            if (currentPartNo) await loadPartData();
-        });
-
-        async function loadPartData() {
+        async function loadPart() {
+            if (!partNo) return alert("No Part Number provided!");
+            
             try {
-                const docRef = doc(db, "parts", currentPartNo);
+                const docRef = doc(db, "parts", partNo);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    document.getElementById("display-part-no").textContent = data.partNo;
-                    document.getElementById("d-desc").textContent = data.desc || "No Description";
-                    document.getElementById("d-count").textContent = data.requisitions ? data.requisitions.length : 0;
-
-                    // Demand Table
-                    const reqBody = document.getElementById("reqs-body");
-                    reqBody.innerHTML = "";
-                    if (data.requisitions && data.requisitions.length > 0) {
-                        data.requisitions.forEach(r => {
-                            reqBody.innerHTML += `
-                                <tr>
-                                    <td><span class="req-tag">${r.reqId}</span></td>
-                                    <td><span class="buyer-badge">${r.buyer || '-'}</span></td> <td><span class="hull-badge">${r.hull}</span></td>
-                                    <td><b>${r.qtyReq}</b></td>
-                                    <td>${r.uom || 'EA'}</td>
-                                    <td>${r.status || 'Open'}</td>
-                                    <td>${r.dateAdded ? r.dateAdded.split('T')[0] : '-'}</td>
-                                </tr>`;
-                        });
-                    } else {
-                        reqBody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:20px;'>No active requisitions.</td></tr>";
-                    }
-
-                    // Supply Table
-                    const quoteBody = document.getElementById("quotes-body");
-                    quoteBody.innerHTML = "";
-                    
-                    if (data.quotes && data.quotes.length > 0) {
-                        const indexedQuotes = data.quotes.map((q, i) => ({...q, origIndex: i}));
-                        const sortedQuotes = indexedQuotes.sort((a, b) => a.rank - b.rank);
-                        
-                        sortedQuotes.forEach((q) => {
-                            const realIndex = q.origIndex;
-                            let rankDisplay = q.rank;
-                            let rankClass = 'rank-other';
-                            
-                            if (q.rank == 1) rankClass = 'rank-1';
-                            else if (q.rank == 2) rankClass = 'rank-2';
-                            else if (q.rank == 3) rankClass = 'rank-3';
-                            else if (q.rank >= 77) rankClass = 'rank-high';
-                            
-                            if (q.rank == 999) rankDisplay = "No Rank";
-
-                            const noteBtn = q.notes ? `<button class="btn-note" onclick="showNotes('${q.notes.replace(/'/g, "\\'")}')">💡</button>` : "";
-
-                            quoteBody.innerHTML += `
-                                <tr>
-                                    <td>
-                                        <button class="btn-icon" onclick="openQuoteEdit(${realIndex})">✏️</button>
-                                        <button class="btn-icon btn-del" onclick="deleteQuote(${realIndex})">🗑️</button>
-                                    </td>
-                                    <td onclick="openQuickRank(${realIndex}, ${q.rank})">
-                                        <span class="rank-badge ${rankClass}" title="Click to change rank">${rankDisplay}</span>
-                                    </td>
-                                    <td>${q.supplier}</td>
-                                    <td>${q.date}</td>
-                                    <td>${q.mfg || '-'}</td>
-                                    <td>${q.file || '-'}</td>
-                                    <td>${q.qty}</td>
-                                    <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
-                                    <td class="col-currency" style="background:#e8f4ff;">$${((q.price||0)*(q.qty||0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                                    <td>${q.lead}</td>
-                                    <td>${q.valid || '-'}</td>
-                                    <td style="text-align:center;">${noteBtn}</td>
-                                </tr>`;
-                        });
-                    } else {
-                        quoteBody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px; color:#666;'>No quotes added yet.</td></tr>";
-                    }
-
+                    currentDoc = docSnap.data();
+                    renderPage();
+                } else {
+                    document.body.innerHTML = "<h3>Part not found in database.</h3>";
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                alert("Error loading: " + err.message);
+            }
         }
 
-        // --- QUICK RANK LOGIC ---
-        window.openQuickRank = (index, currentRank) => {
-            document.getElementById('qr_index').value = index;
-            document.getElementById('qr_select').value = currentRank;
-            document.getElementById('quickRankModal').style.display = 'flex';
-        }
+        function renderPage() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
 
-        window.saveQuickRank = async () => {
-            const index = Number(document.getElementById('qr_index').value);
-            const newRank = Number(document.getElementById('qr_select').value);
+            // Header Info
+            document.getElementById('partNoDisplay').innerText = partNo;
+            document.getElementById('descDisplay').innerText = currentDoc.desc || "No Description";
             
-            try {
-                const docRef = doc(db, "parts", currentPartNo);
-                const docSnap = await getDoc(docRef);
-                const data = docSnap.data();
-                const updatedQuotes = [...data.quotes];
-                
-                if (newRank === 1) {
-                    updatedQuotes.forEach((q, i) => {
-                        if (q.rank === 1 && i !== index) {
-                            q.rank = 3; 
-                        }
-                    });
-                }
+            // Requisitions
+            const reqTable = document.getElementById('reqTable');
+            reqTable.innerHTML = "";
+            let projects = new Set();
+            
+            if (currentDoc.requisitions && currentDoc.requisitions.length > 0) {
+                currentDoc.requisitions.forEach(req => {
+                    projects.add(req.hull);
+                    reqTable.innerHTML += `
+                        <tr>
+                            <td><span class="badge bg-grey">${req.reqId}</span></td>
+                            <td>${req.buyer}</td>
+                            <td><span class="badge bg-blue">${req.hull}</span></td>
+                            <td>${req.qtyReq}</td>
+                            <td>${req.uom}</td>
+                            <td>${req.status || 'Open'}</td>
+                            <td>${req.dateAdded || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                reqTable.innerHTML = "<tr><td colspan='7' style='text-align:center'>No active requisitions</td></tr>";
+            }
+            document.getElementById('projectCount').innerText = projects.size;
 
-                updatedQuotes[index].rank = newRank; 
+            // Quotes
+            const quoteTable = document.getElementById('quoteTable');
+            quoteTable.innerHTML = "";
+            
+            if (currentDoc.quotes && currentDoc.quotes.length > 0) {
+                // Sort by Rank
+                const sortedQuotes = currentDoc.quotes.sort((a,b) => (a.rank || 999) - (b.rank || 999));
                 
-                await updateDoc(docRef, { quotes: updatedQuotes });
-                document.getElementById('quickRankModal').style.display = 'none';
-                loadPartData();
-            } catch(err) { alert("Error: " + err.message); }
+                sortedQuotes.forEach((q, index) => {
+                    const total = (parseFloat(q.price) * parseFloat(q.qty || 1)).toFixed(2);
+                    quoteTable.innerHTML += `
+                        <tr>
+                            <td>
+                                <button onclick="editQuote(${index})" class="btn btn-edit">✏️</button>
+                                <button onclick="deleteQuote(${index})" class="btn btn-del">🗑️</button>
+                            </td>
+                            <td><span class="badge bg-green">${q.rank || '-'}</span></td>
+                            <td>${q.supplier}</td>
+                            <td>${q.date}</td>
+                            <td>${q.mfg || '-'}</td>
+                            <td>${q.file || '-'}</td>
+                            <td>${q.qty || 1}</td>
+                            <td>$${q.price}</td>
+                            <td>$${total}</td>
+                            <td>${q.lead}</td>
+                            <td>${q.validUntil || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                quoteTable.innerHTML = "<tr><td colspan='11' style='text-align:center'>No quotes available</td></tr>";
+            }
         }
 
-        // --- FULL EDIT LOGIC ---
-        window.openQuoteEdit = async (index) => {
-            const docRef = doc(db, "parts", currentPartNo);
-            const docSnap = await getDoc(docRef);
-            const q = docSnap.data().quotes[index];
-
-            document.getElementById('eq_index').value = index;
-            document.getElementById('eq_supplier').value = q.supplier;
-            document.getElementById('eq_rank').value = q.rank;
-            document.getElementById('eq_mfg').value = q.mfg || "";
-            document.getElementById('eq_file').value = q.file || "";
-            document.getElementById('eq_price').value = q.price;
-            document.getElementById('eq_qty').value = q.qty;
-            document.getElementById('eq_lead').value = q.lead;
-            document.getElementById('eq_valid').value = q.valid || "";
-            document.getElementById('eq_notes').value = q.notes || "";
-
-            document.getElementById('editQuoteModal').style.display = 'flex';
+        // --- QUOTE LOGIC ---
+        window.openQuoteModal = () => {
+            isEditing = false;
+            document.getElementById('modalTitle').innerText = "Add New Quote";
+            // Clear fields
+            document.getElementById('q_supplier').value = "";
+            document.getElementById('q_date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('q_price').value = "";
+            document.getElementById('q_lead').value = "";
+            document.getElementById('quoteModal').style.display = "flex";
         }
 
-        window.saveQuoteEdit = async () => {
-            const index = Number(document.getElementById('eq_index').value);
-            const newRank = Number(document.getElementById('eq_rank').value);
+        window.editQuote = (index) => {
+            isEditing = true;
+            document.getElementById('modalTitle').innerText = "Edit Quote";
+            document.getElementById('q_index').value = index;
+            const q = currentDoc.quotes[index];
+            
+            document.getElementById('q_supplier').value = q.supplier;
+            document.getElementById('q_date').value = q.date;
+            document.getElementById('q_valid').value = q.validUntil || "";
+            document.getElementById('q_price').value = q.price;
+            document.getElementById('q_qty').value = q.qty || 1;
+            document.getElementById('q_lead').value = q.lead;
+            document.getElementById('q_mfg').value = q.mfg || "";
+            document.getElementById('q_file').value = q.file || "";
+            
+            document.getElementById('quoteModal').style.display = "flex";
+        }
+
+        window.closeQuoteModal = () => { document.getElementById('quoteModal').style.display = "none"; }
+
+        window.saveQuote = async () => {
+            const newQuote = {
+                supplier: document.getElementById('q_supplier').value,
+                date: document.getElementById('q_date').value,
+                validUntil: document.getElementById('q_valid').value,
+                price: parseFloat(document.getElementById('q_price').value).toFixed(2),
+                qty: parseInt(document.getElementById('q_qty').value) || 1,
+                lead: document.getElementById('q_lead').value,
+                mfg: document.getElementById('q_mfg').value,
+                file: document.getElementById('q_file').value,
+                rank: 999 // Default rank, logic to sort can be added later
+            };
+
+            let updatedQuotes = currentDoc.quotes || [];
+
+            if (isEditing) {
+                const idx = document.getElementById('q_index').value;
+                // Preserve rank if editing
+                newQuote.rank = updatedQuotes[idx].rank;
+                updatedQuotes[idx] = newQuote;
+            } else {
+                // Auto-rank: if it's the only quote, rank 1
+                if(updatedQuotes.length === 0) newQuote.rank = 1;
+                updatedQuotes.push(newQuote);
+            }
+
+            // Recalculate Ranks based on price (Simple logic: Lowest price = Rank 1)
+            updatedQuotes.sort((a,b) => parseFloat(a.price) - parseFloat(b.price));
+            updatedQuotes.forEach((q, i) => q.rank = i + 1);
 
             try {
-                const docRef = doc(db, "parts", currentPartNo);
-                const docSnap = await getDoc(docRef);
-                const updatedQuotes = [...docSnap.data().quotes];
-
-                if (newRank === 1) {
-                    updatedQuotes.forEach((q, i) => {
-                        if (q.rank === 1 && i !== index) {
-                            q.rank = 3; 
-                        }
-                    });
-                }
-
-                updatedQuotes[index] = {
-                    ...updatedQuotes[index],
-                    supplier: document.getElementById('eq_supplier').value,
-                    rank: newRank,
-                    mfg: document.getElementById('eq_mfg').value,
-                    file: document.getElementById('eq_file').value,
-                    price: Number(document.getElementById('eq_price').value),
-                    qty: Number(document.getElementById('eq_qty').value),
-                    lead: document.getElementById('eq_lead').value,
-                    valid: document.getElementById('eq_valid').value,
-                    notes: document.getElementById('eq_notes').value,
-                };
-
-                await updateDoc(docRef, { quotes: updatedQuotes });
-                document.getElementById('editQuoteModal').style.display = 'none';
-                loadPartData();
-            } catch(err) { alert("Error: " + err.message); }
+                await updateDoc(doc(db, "parts", partNo), { quotes: updatedQuotes });
+                closeQuoteModal();
+                loadPart(); // Reload page data
+            } catch(err) { alert("Error saving quote: " + err.message); }
         }
 
         window.deleteQuote = async (index) => {
             if(!confirm("Delete this quote?")) return;
+            const updatedQuotes = [...currentDoc.quotes];
+            updatedQuotes.splice(index, 1);
+            
+            // Re-rank
+            updatedQuotes.forEach((q, i) => q.rank = i + 1);
+
             try {
-                const docRef = doc(db, "parts", currentPartNo);
-                const docSnap = await getDoc(docRef);
-                const updatedQuotes = [...docSnap.data().quotes];
-                updatedQuotes.splice(index, 1);
-                await updateDoc(docRef, { quotes: updatedQuotes });
-                loadPartData();
-            } catch(err) { alert("Error: " + err.message); }
+                await updateDoc(doc(db, "parts", partNo), { quotes: updatedQuotes });
+                loadPart();
+            } catch(err) { alert("Error deleting: " + err.message); }
         }
 
-        window.showNotes = (text) => {
-            document.getElementById('note-text').innerText = text;
-            document.getElementById('notesModal').style.display = 'flex';
-        }
+        // Initialize
+        loadPart();
 
-        window.openQuickRank = openQuickRank;
-        window.saveQuickRank = saveQuickRank;
-        window.openQuoteEdit = openQuoteEdit;
-        window.saveQuoteEdit = saveQuoteEdit;
+        // Bind global
+        window.openQuoteModal = openQuoteModal;
+        window.closeQuoteModal = closeQuoteModal;
+        window.saveQuote = saveQuote;
+        window.editQuote = editQuote;
         window.deleteQuote = deleteQuote;
-        window.showNotes = showNotes;
+
     </script>
 </body>
 </html>
