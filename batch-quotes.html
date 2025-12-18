@@ -35,9 +35,11 @@
         <p>Upload an Excel file with these exact columns:</p>
         <div style="line-height: 2em; margin-bottom: 20px;">
             <span class="code-snippet">PartNo</span>
-            <span class="code-snippet">Description</span> <span class="code-snippet">Supplier</span>
+            <span class="code-snippet">Description</span>
+            <span class="code-snippet">Supplier</span>
             <span class="code-snippet">Price</span>
-            <span class="code-snippet">QuoteDate</span> <span class="code-snippet">Qty</span>
+            <span class="code-snippet">QuoteDate</span>
+            <span class="code-snippet">Qty</span>
             <span class="code-snippet">LeadTime</span>
             <span class="code-snippet">Validity</span>
             <span class="code-snippet">Notes</span>
@@ -79,6 +81,25 @@
             logBox.prepend(div);
         }
 
+        // --- NEW HELPER: Convert Excel Serial Date to YYYY-MM-DD ---
+        function formatExcelDate(val, defaultToToday = false) {
+            if (!val) {
+                return defaultToToday ? new Date().toLocaleDateString('en-CA') : "";
+            }
+
+            // If it's a number (Excel Serial Date like 45665)
+            if (typeof val === 'number') {
+                // Excel base date logic (approx 1900 epoch)
+                const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+                // Adjust for timezone to prevent off-by-one errors
+                date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+                return date.toISOString().split('T')[0];
+            }
+
+            // If it's already text, just return it
+            return val.toString().trim();
+        }
+
         async function handleFile(file) {
             log(`Reading ${file.name}...`);
             const reader = new FileReader();
@@ -102,13 +123,9 @@
 
                         const partNo = row.PartNo.toString().toUpperCase().trim();
                         
-                        // Handle Date (Excel dates can be tricky, so we check for text string first)
-                        // If QuoteDate is missing, we default to Today (YYYY-MM-DD)
-                        let qDate = new Date().toLocaleDateString('en-CA');
-                        if (row.QuoteDate) {
-                            // If user types '2023-05-20', utilize it. 
-                            qDate = row.QuoteDate.toString().trim();
-                        }
+                        // Use the new Helper to fix dates
+                        const qDate = formatExcelDate(row.QuoteDate, true); // Default to Today if empty
+                        const vDate = formatExcelDate(row.Validity, false); // Default to empty if empty
 
                         // Prepare the Quote Object
                         const quoteItem = {
@@ -116,12 +133,12 @@
                             price: Number(row.Price || 0),
                             qty: Number(row.Qty || 1),
                             lead: row.LeadTime ? row.LeadTime.toString() : "TBD",
-                            valid: row.Validity ? row.Validity.toString() : "",
+                            valid: vDate,  // Now correctly formatted
                             notes: row.Notes ? row.Notes.toString() : "",
                             mfg: row.MFG ? row.MFG.toString() : "",
                             file: row.QuoteFile ? row.QuoteFile.toString() : "",
                             rank: 999,
-                            date: qDate, // Uses Excel column or Today
+                            date: qDate,   // Now correctly formatted
                             timestamp: new Date().toISOString()
                         };
 
@@ -130,19 +147,12 @@
                         const docSnap = await getDoc(docRef);
 
                         if (docSnap.exists()) {
-                            // Part Exists: Append Quote
-                            const updates = {
-                                quotes: arrayUnion(quoteItem)
-                            };
-                            // Optional: Update Description if provided in Excel
-                            if (row.Description) {
-                                updates.desc = row.Description.toString();
-                            }
+                            const updates = { quotes: arrayUnion(quoteItem) };
+                            if (row.Description) updates.desc = row.Description.toString();
 
                             await updateDoc(docRef, updates);
                             log(`[${partNo}] Added Quote from ${quoteItem.supplier}`);
                         } else {
-                            // New Part: Create Shell + Quote
                             await setDoc(docRef, {
                                 partNo: partNo,
                                 desc: row.Description ? row.Description.toString() : "Imported Part",
