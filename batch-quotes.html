@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Batch Upload Quotes</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f4f9; text-align: center; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .drop-zone { 
+            border: 3px dashed #0056b3; padding: 40px; background: #e8f4ff; 
+            margin: 20px 0; border-radius: 10px; cursor: pointer; transition: 0.3s;
+        }
+        .drop-zone:hover { background: #d0e8ff; border-color: #004494; }
+        
+        h2 { color: #0056b3; }
+        .back-link { display: block; margin-top: 20px; color: #666; text-decoration: none; }
+        
+        /* Logs */
+        #log { 
+            text-align: left; background: #333; color: #0f0; padding: 15px; 
+            height: 300px; overflow-y: auto; border-radius: 6px; font-family: monospace; font-size: 13px;
+            display: none;
+        }
+        .log-err { color: #ff4444; }
+        .log-warn { color: #ffbb33; }
+        .code-snippet { background:#eee; padding:2px 6px; border-radius:4px; font-weight:bold; font-size: 0.9em; margin: 0 2px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h2>⚡ Batch Upload Quotes</h2>
+        <p>Upload an Excel file with these exact columns:</p>
+        <div style="line-height: 2em; margin-bottom: 20px;">
+            <span class="code-snippet">PartNo</span>
+            <span class="code-snippet">Supplier</span>
+            <span class="code-snippet">Price</span>
+            <span class="code-snippet">Qty</span>
+            <span class="code-snippet">LeadTime</span>
+            <span class="code-snippet">Validity</span>
+            <span class="code-snippet">Notes</span>
+            <span class="code-snippet">MFG</span>
+            <span class="code-snippet">QuoteFile</span>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+            <h3>📂 Drag & Drop Excel File Here</h3>
+            <p>or click to browse</p>
+            <input type="file" id="fileInput" style="display:none" accept=".xlsx, .xls">
+        </div>
+
+        <div id="log"></div>
+        <a href="index.html" class="back-link">&#8592; Back to Dashboard</a>
+    </div>
+
+    <script type="module">
+        import { db, doc, getDoc, setDoc, updateDoc, arrayUnion } from './firebase-config.js';
+
+        if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const logBox = document.getElementById('log');
+
+        // Drag & Drop Handlers
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = '#d0e8ff'; };
+        dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        function log(msg, type="") {
+            logBox.style.display = "block";
+            const div = document.createElement("div");
+            div.textContent = `> ${msg}`;
+            if(type === "error") div.className = "log-err";
+            if(type === "warn") div.className = "log-warn";
+            logBox.prepend(div);
+        }
+
+        async function handleFile(file) {
+            log(`Reading ${file.name}...`);
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+                    log(`Found ${rows.length} rows. Starting processing...`);
+
+                    let count = 0;
+                    for (const row of rows) {
+                        // 1. Validate Row
+                        if (!row.PartNo || !row.Supplier || !row.Price) {
+                            log(`Skipping Row ${count+1}: Missing PartNo, Supplier, or Price`, "warn");
+                            continue;
+                        }
+
+                        const partNo = row.PartNo.toString().toUpperCase().trim();
+                        
+                        // Prepare the Quote Object
+                        const quoteItem = {
+                            supplier: row.Supplier.toString(),
+                            price: Number(row.Price || 0),
+                            qty: Number(row.Qty || 1),
+                            lead: row.LeadTime ? row.LeadTime.toString() : "TBD",
+                            valid: row.Validity ? row.Validity.toString() : "",
+                            notes: row.Notes ? row.Notes.toString() : "",
+                            mfg: row.MFG ? row.MFG.toString() : "",
+                            file: row.QuoteFile ? row.QuoteFile.toString() : "",
+                            rank: 999, // Default to "No Rank"
+                            date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
+                            timestamp: new Date().toISOString()
+                        };
+
+                        // 2. Database Update
+                        const docRef = doc(db, "parts", partNo);
+                        const docSnap = await getDoc(docRef);
+
+                        if (docSnap.exists()) {
+                            // Part Exists: Append Quote
+                            await updateDoc(docRef, {
+                                quotes: arrayUnion(quoteItem)
+                            });
+                            log(`[${partNo}] Added Quote from ${quoteItem.supplier}`);
+                        } else {
+                            // New Part: Create Shell + Quote
+                            await setDoc(docRef, {
+                                partNo: partNo,
+                                desc: "Created via Batch Quote Upload",
+                                requisitions: [],
+                                quotes: [quoteItem] 
+                            });
+                            log(`[${partNo}] Created New Part + Quote from ${quoteItem.supplier}`);
+                        }
+                        count++;
+                    }
+                    log(`✅ DONE! Processed ${count} records successfully.`);
+                } catch (err) {
+                    log("SYSTEM ERROR: " + err.message, "error");
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
