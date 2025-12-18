@@ -94,7 +94,7 @@
             <thead>
                 <tr>
                     <th>Req ID</th>
-                    <th>Description</th> <th>Hull / Project</th>
+                    <th>Hull / Project</th>
                     <th>Qty Required</th>
                     <th>UOM</th>
                     <th>Status</th>
@@ -110,13 +110,19 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 80px;">Actions</th> <th>Rank</th>
+                    <th style="width: 80px;">Actions</th>
+                    <th>Rank</th>
                     <th>Supplier</th>
                     <th>Quote Date</th>
-                    <th>MFG No</th> <th>Quote File</th> <th>QTY</th> <th>Price</th>
-                    <th>Total</th> <th>Lead Time</th>
+                    <th>MFG No</th> 
+                    <th>Quote File</th> 
+                    <th>QTY</th> 
+                    <th>Price</th>
+                    <th>Total</th> 
+                    <th>Lead Time</th>
                     <th>Validity</th>
-                    <th>Notes</th> </tr>
+                    <th>Notes</th> 
+                </tr>
             </thead>
             <tbody id="quotes-body"></tbody>
         </table>
@@ -197,7 +203,6 @@
     </div>
 
     <script type="module">
-        // Added updateDoc to imports
         import { db, doc, getDoc, updateDoc } from './firebase-config.js';
 
         // --- SECURITY CHECK ---
@@ -242,7 +247,7 @@
                             reqBody.innerHTML += `
                                 <tr>
                                     <td><span class="req-tag">${r.reqId}</span></td>
-                                    <td>${r.desc || data.desc || '-'}</td> <td><span class="hull-badge">${r.hull}</span></td>
+                                    <td><span class="hull-badge">${r.hull}</span></td>
                                     <td><b style="font-size:1.1em">${r.qtyReq}</b></td>
                                     <td>${r.uom || 'EA'}</td>
                                     <td>${r.status || 'Open'}</td>
@@ -251,7 +256,7 @@
                             `;
                         });
                     } else {
-                        reqBody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:20px; color:#666;'>No active requisitions.</td></tr>";
+                        reqBody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:#666;'>No active requisitions.</td></tr>";
                     }
 
                     // 3. FILL QUOTES TABLE
