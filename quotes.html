@@ -19,7 +19,7 @@
         .btn-red:hover { background-color: #c82333; }
 
         /* Table */
-        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
+        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 80vh; }
         table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 13px; }
         thead th { position: sticky; top: 0; background-color: #6f42c1; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
         tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
@@ -51,7 +51,7 @@
         <a href="index.html" class="btn-red">Close & Refresh</a>
     </div>
 
-    <div id="statusBar">Initializing System...</div>
+    <div id="statusBar">Initializing...</div>
 
     <div class="table-container">
         <table>
@@ -92,22 +92,19 @@
         let flatData = [];
         let filteredData = [];
         let currentPage = 1;
-        const itemsPerPage = 100; // 100 Lines per page
+        const itemsPerPage = 100;
 
-        // 1. CHUNKED LOADER (Fixes Freezing)
+        // 1. RECURSIVE LOAD LOGIC (Smoother, less freezing)
         window.loadQuotes = async () => {
             statusDiv.textContent = "Connecting to database...";
-            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Scanning database...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Loading data...</td></tr>";
 
             flatData = [];
-            const CHUNK_SIZE = 4000; // Downloads in batches of 4000
+            const CHUNK_SIZE = 5000; 
             let lastDoc = null;
-            let keepScanning = true;
-            let totalScanned = 0;
 
-            try {
-                while (keepScanning) {
-                    // Build Query
+            async function loadNextBatch() {
+                try {
                     let q;
                     if (lastDoc) {
                         q = query(collection(db, "parts"), orderBy("partNo"), startAfter(lastDoc), limit(CHUNK_SIZE));
@@ -118,14 +115,14 @@
                     const snapshot = await getDocs(q);
 
                     if (snapshot.empty) {
-                        keepScanning = false;
-                        break;
+                        statusDiv.textContent = `Load Complete. Found ${flatData.length} quotes.`;
+                        statusDiv.style.color = "green";
+                        return; // Done
                     }
 
                     // Process Batch
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        
                         if (data.quotes && data.quotes.length > 0) {
                             data.quotes.forEach(quote => {
                                 flatData.push({
@@ -146,28 +143,24 @@
                         }
                     });
 
-                    // Update Status & Render Intermediate Results
-                    totalScanned += snapshot.size;
-                    statusDiv.textContent = `Scanning... Checked ${totalScanned} records. Found ${flatData.length} quotes.`;
-                    filterData(); // Show what we have so far
+                    // Update UI immediately
+                    statusDiv.textContent = `Loading database... (${flatData.length} quotes found so far)`;
+                    filterData(); // Render what we have
 
-                    // Prep next loop
+                    // Recursively call next batch
                     lastDoc = snapshot.docs[snapshot.docs.length - 1];
-                    
-                    // Optional Safety Break
-                    if (totalScanned > 60000) keepScanning = false; 
+                    // Small delay to let UI breathe
+                    setTimeout(loadNextBatch, 50); 
+
+                } catch (err) {
+                    console.error(err);
+                    statusDiv.textContent = "Connection interrupted. Retrying...";
+                    setTimeout(loadNextBatch, 2000); // Retry logic
                 }
-
-                statusDiv.textContent = `Scan Complete. Loaded ${flatData.length} total quotes from ${totalScanned} database records.`;
-                statusDiv.style.color = "green";
-                statusDiv.style.fontWeight = "bold";
-                filterData();
-
-            } catch (err) {
-                console.error(err);
-                statusDiv.textContent = "Error loading data: " + err.message;
-                statusDiv.style.color = "red";
             }
+
+            // Start the chain
+            loadNextBatch();
         };
 
         // 2. FILTER LOGIC
@@ -190,9 +183,7 @@
                 return true;
             });
 
-            // If user is typing search, reset to page 1
-            // If function called by loader, keep current page (unless logic dictates otherwise)
-            // For simplicity, reset to 1 on filter
+            // Auto-reset page if filtering
             if(document.activeElement.tagName === "INPUT") currentPage = 1;
             
             renderTable();
@@ -202,8 +193,8 @@
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
-                // If scanning, show specific message
-                const msg = flatData.length === 0 ? "Scanning..." : "No quotes found matching filters.";
+                // If loading, show specific message
+                const msg = flatData.length === 0 ? "Loading..." : "No quotes found matching filters.";
                 tbody.innerHTML = `<tr><td colspan='12' style='text-align:center; padding:20px;'>${msg}</td></tr>`;
                 updateControls();
                 return;
