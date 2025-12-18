@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <div id="statusBar">Initializing System...</div>
+    <div id="statusBar">Initializing...</div>
 
     <div style="margin-bottom: 15px; display: flex; align-items: center;">
         <input type="text" id="searchInput" class="col-search" style="width:250px; margin:0;" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
@@ -131,10 +131,10 @@
             <input type="hidden" id="edit_partNo">
             <div class="form-group"><label>Req ID</label><input type="text" id="edit_reqId"></div>
             <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="width:50%"><label>Buyer</label><input type="text" id="edit_buyer"></div>
-                <div class="form-group" style="width:50%"><label>Selected</label><input type="text" id="edit_selected"></div>
+                <div class="form-group" style="width:50%"><label>Buyer (Initials)</label><input type="text" id="edit_buyer"></div>
+                <div class="form-group" style="width:50%"><label>Selected (Status)</label><input type="text" id="edit_selected"></div>
             </div>
-            <div class="form-group"><label>Budget</label><input type="number" id="edit_budget" step="0.01"></div>
+            <div class="form-group"><label>Budget (Unit Price)</label><input type="number" id="edit_budget" step="0.01"></div>
             <div class="form-group"><label>Hull</label><input type="text" id="edit_hull"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="form-group" style="width:50%"><label>Qty</label><input type="number" id="edit_qty"></div>
@@ -167,6 +167,7 @@
         const statusDiv = document.getElementById('statusBar');
         const paginationDiv = document.getElementById('paginationControls');
 
+        // STATE
         let flatTableData = []; 
         let filteredData = [];
         let currentPage = 1;
