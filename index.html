@@ -76,7 +76,7 @@
 <body>
 
     <script>
-        // Force reload on back button to prevent stale cache
+        // Browser Refresh Logic
         window.addEventListener( "pageshow", function ( event ) {
             var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
             if ( historyTraversal ) { window.location.reload(); }
@@ -86,7 +86,7 @@
     <div class="header-container">
         <div style="display:flex; align-items:center;">
             <h2>Rush Procurement Base</h2>
-            <button onclick="runOptimization()" class="btn-opt" title="Click once to sort items into Active/Archive buckets">⚡ Optimize DB</button>
+            <button onclick="window.runOptimization()" class="btn-opt" title="Sorts DB into Active/Archive Buckets">⚡ Optimize DB</button>
             <span id="optStatus" style="margin-left: 10px; color: #28a745; font-weight: bold;"></span>
         </div>
         <div>
@@ -189,29 +189,37 @@
             return colors[Math.abs(hash % colors.length)];
         }
 
-        // 1. FAST LOAD (BUCKET STRATEGY)
+        // --- 1. LOAD DATA WITH FALLBACK ---
         window.loadInitial = async () => {
             if (isDataReady && flatTableData.length > 0) { renderTable(); return; }
-            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading Active Work Bucket...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading database...</td></tr>";
             
             try {
-                // QUERY ONLY ACTIVE PARTS
+                // ATTEMPT 1: Load Active Bucket (Fast)
                 const q = query(collection(db, "parts"), where("bucket", "==", "active"), limit(5000));
                 const querySnapshot = await getDocs(q);
                 
-                // FALLBACK: If bucket is empty, maybe they haven't optimized yet. Load everything to be safe.
                 if (querySnapshot.empty) {
-                    console.log("No active bucket found. Falling back to full load.");
-                    const qAll = query(collection(db, "parts"), limit(5000));
-                    processSnapshot(await getDocs(qAll));
+                    console.warn("Active bucket empty. Triggering Fallback Load...");
+                    await loadFallback(); // Trigger fallback if optimized bucket is empty
                 } else {
                     processSnapshot(querySnapshot);
                 }
             } catch (err) {
-                console.error("Firebase Error:", err);
-                // Try catch-all if index missing
-                const qAll = query(collection(db, "parts"), limit(2000));
-                processSnapshot(await getDocs(qAll));
+                console.error("Index Error:", err);
+                await loadFallback(); // Trigger fallback on error
+            }
+        }
+
+        // FALLBACK LOADER (Loads generic data so user sees SOMETHING)
+        async function loadFallback() {
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px; color:#6f42c1;'><b>⚠️ Optimization Required</b><br>Loading raw data... Please click '⚡ Optimize DB' when loaded.</td></tr>";
+            try {
+                const qAll = query(collection(db, "parts"), limit(2000)); // Load recent 2000
+                const snap = await getDocs(qAll);
+                processSnapshot(snap);
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Critical Error: ${e.message}</td></tr>`;
             }
         }
 
@@ -264,25 +272,26 @@
             filterData();
         }
 
-        // --- OPTIMIZATION SCRIPT (Bucketing) ---
+        // --- OPTIMIZATION SCRIPT (Migrate Data to Buckets) ---
         window.runOptimization = async () => {
             const btn = document.querySelector('.btn-opt');
             const status = document.getElementById('optStatus');
-            if(!confirm("This will scan all records and sort them into Active/Archive buckets for speed. Continue?")) return;
+            if(!confirm("This will scan ALL records and organize them for speed. This may take a moment. Continue?")) return;
 
             btn.disabled = true;
-            btn.textContent = "Scanning...";
-            status.textContent = "Please wait...";
+            btn.textContent = "Scanning DB...";
+            status.textContent = "Starting...";
 
             try {
-                // Get EVERYTHING (Requires patience)
-                const q = query(collection(db, "parts")); 
+                // 1. Get ALL Docs (Limit 5000 for safety)
+                const q = query(collection(db, "parts"), limit(5000)); 
                 const snapshot = await getDocs(q);
                 
                 const batchSize = 400; 
                 let batch = writeBatch(db);
                 let count = 0;
                 let processed = 0;
+                let updates = 0;
 
                 snapshot.docs.forEach((docSnap) => {
                     const data = docSnap.data();
@@ -292,10 +301,12 @@
                     const currentBucket = data.bucket;
                     const correctBucket = hasActiveReq ? "active" : "archive";
 
+                    // Only update if wrong or missing
                     if (currentBucket !== correctBucket) {
                         const ref = doc(db, "parts", docSnap.id);
                         batch.update(ref, { bucket: correctBucket });
                         count++;
+                        updates++;
                     }
 
                     if (count >= batchSize) {
@@ -306,12 +317,10 @@
                     processed++;
                 });
 
-                if (count > 0) await batch.commit(); // Commit remainders
+                if (count > 0) await batch.commit(); 
 
-                status.textContent = "Done! Reloading...";
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
+                status.textContent = `Success! Updated ${updates} records. Reloading...`;
+                setTimeout(() => { window.location.reload(); }, 1500);
 
             } catch (err) {
                 alert("Error optimizing: " + err.message);
@@ -321,7 +330,6 @@
         }
 
         // --- STANDARD LOGIC ---
-        
         window.filterData = () => {
             if (!isDataReady) return;
             const inputs = document.querySelectorAll('.col-search');
@@ -380,10 +388,8 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         const updatedReqs = data.requisitions.filter(req => !reqIdsToRemove.includes(req.reqId));
-                        
-                        // AUTO-ARCHIVE LOGIC
+                        // Auto-Archive
                         const newBucket = updatedReqs.length > 0 ? "active" : "archive";
-                        
                         await updateDoc(docRef, { requisitions: updatedReqs, bucket: newBucket });
                     }
                 }
@@ -397,7 +403,7 @@
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found.</td></tr>";
                 updateControls();
                 return;
             }
@@ -472,10 +478,7 @@
                     const data = docSnap.data();
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
-                    
-                    // AUTO-ARCHIVE Logic
                     const newBucket = updatedReqs.length > 0 ? "active" : "archive";
-
                     await updateDoc(docRef, { requisitions: updatedReqs, bucket: newBucket });
                     isDataReady = false;
                     loadInitial();
@@ -484,6 +487,8 @@
         }
 
         window.openEdit = async (partNo, index) => {
+            currentEditPart = partNo;
+            currentEditIndex = index;
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
@@ -529,7 +534,7 @@
                     }
                     updatedReqs[index] = newReqData;
                     
-                    // ENSURE BUCKET IS ACTIVE ON EDIT
+                    // Force Bucket Update on Save
                     await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value, bucket: "active" });
                     
                     closeModal();
