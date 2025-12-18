@@ -19,7 +19,7 @@
         .btn-red:hover { background-color: #c82333; }
 
         /* Table */
-        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 80vh; }
+        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
         table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 13px; }
         thead th { position: sticky; top: 0; background-color: #6f42c1; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
         tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
@@ -34,9 +34,14 @@
         
         /* Pagination */
         .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
-        .page-info { font-weight: bold; color: #555; }
         .btn-nav { padding: 8px 16px; background-color: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
+
+        /* Status Bar */
+        #statusBar { 
+            background: #e2e3e5; color: #383d41; padding: 10px; margin-bottom: 15px; 
+            border-radius: 4px; border: 1px solid #d6d8db; font-size: 13px; font-family: monospace; 
+        }
     </style>
 </head>
 <body>
@@ -46,7 +51,7 @@
         <a href="index.html" class="btn-red">Close & Refresh</a>
     </div>
 
-    <div id="status" style="margin-bottom:10px; font-style:italic; color:#666;">Initializing...</div>
+    <div id="statusBar">Initializing System...</div>
 
     <div class="table-container">
         <table>
@@ -81,21 +86,21 @@
         }
 
         const tbody = document.getElementById('tableBody');
-        const statusDiv = document.getElementById('status');
+        const statusDiv = document.getElementById('statusBar');
         const paginationDiv = document.getElementById('paginationControls');
 
         let flatData = [];
         let filteredData = [];
         let currentPage = 1;
-        const itemsPerPage = 100; // Increased to 100 as requested
+        const itemsPerPage = 100; // 100 Lines per page
 
-        // 1. CHUNKED LOAD LOGIC (Gets Everything)
+        // 1. CHUNKED LOADER (Fixes Freezing)
         window.loadQuotes = async () => {
             statusDiv.textContent = "Connecting to database...";
-            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Scanning full database (Batching)...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Scanning database...</td></tr>";
 
             flatData = [];
-            const CHUNK_SIZE = 4000; // Safe batch size
+            const CHUNK_SIZE = 4000; // Downloads in batches of 4000
             let lastDoc = null;
             let keepScanning = true;
             let totalScanned = 0;
@@ -141,18 +146,19 @@
                         }
                     });
 
-                    // Update Status
+                    // Update Status & Render Intermediate Results
                     totalScanned += snapshot.size;
-                    statusDiv.textContent = `Scanning... Checked ${totalScanned} parts. Found ${flatData.length} quotes so far.`;
-                    
+                    statusDiv.textContent = `Scanning... Checked ${totalScanned} records. Found ${flatData.length} quotes.`;
+                    filterData(); // Show what we have so far
+
                     // Prep next loop
                     lastDoc = snapshot.docs[snapshot.docs.length - 1];
                     
-                    // Safety break (optional limit, remove if you really want 100k+)
-                    if (totalScanned > 50000) keepScanning = false; 
+                    // Optional Safety Break
+                    if (totalScanned > 60000) keepScanning = false; 
                 }
 
-                statusDiv.textContent = `Complete. Loaded ${flatData.length} quotes from ${totalScanned} records.`;
+                statusDiv.textContent = `Scan Complete. Loaded ${flatData.length} total quotes from ${totalScanned} database records.`;
                 statusDiv.style.color = "green";
                 statusDiv.style.fontWeight = "bold";
                 filterData();
@@ -184,7 +190,11 @@
                 return true;
             });
 
-            currentPage = 1;
+            // If user is typing search, reset to page 1
+            // If function called by loader, keep current page (unless logic dictates otherwise)
+            // For simplicity, reset to 1 on filter
+            if(document.activeElement.tagName === "INPUT") currentPage = 1;
+            
             renderTable();
         };
 
@@ -192,7 +202,9 @@
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>No quotes found matching filters.</td></tr>";
+                // If scanning, show specific message
+                const msg = flatData.length === 0 ? "Scanning..." : "No quotes found matching filters.";
+                tbody.innerHTML = `<tr><td colspan='12' style='text-align:center; padding:20px;'>${msg}</td></tr>`;
                 updateControls();
                 return;
             }
@@ -228,11 +240,10 @@
         }
 
         function updateControls() {
-            const totalItems = filteredData.length;
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
             paginationDiv.innerHTML = `
                 <button onclick="prevPage()" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
-                <span class="page-info">Showing ${Math.min(itemsPerPage, totalItems)} of ${totalItems} Records | Page ${currentPage} of ${totalPages}</span>
+                <span style="font-weight:bold; margin: 0 15px;">Page ${currentPage} of ${totalPages} (${filteredData.length} quotes)</span>
                 <button onclick="nextPage()" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
             `;
         }
