@@ -23,10 +23,11 @@
         <div style="line-height: 2em; margin-bottom: 20px;">
             <span class="code-snippet">PartNo</span>
             <span class="code-snippet">ReqID</span>
-            <span class="code-snippet">Buyer</span> <span class="code-snippet">Hull</span>
+            <span class="code-snippet">Buyer</span>
+            <span class="code-snippet">Hull</span>
             <span class="code-snippet">Qty</span>
             <span class="code-snippet">UOM</span>
-            <span class="code-snippet">Description</span>
+            <span class="code-snippet">Budget</span> <span class="code-snippet">Selected</span> <span class="code-snippet">Description</span>
         </div>
 
         <div class="drop-zone" id="dropZone">
@@ -80,10 +81,16 @@
                         
                         const reqItem = {
                             reqId: row.ReqID.toString(),
-                            buyer: row.Buyer ? row.Buyer.toString() : "", // Parse Buyer
+                            buyer: row.Buyer ? row.Buyer.toString() : "",
                             hull: row.Hull ? row.Hull.toString() : "",
                             qtyReq: Number(row.Qty || 1),
                             uom: row.UOM ? row.UOM.toString() : "EA",
+                            
+                            // --- NEW FIELDS ---
+                            budget: Number(row.Budget || 0),
+                            selected: row.Selected ? row.Selected.toString() : "",
+                            // ------------------
+
                             status: "Open",
                             dateAdded: new Date().toISOString()
                         };

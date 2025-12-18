@@ -38,7 +38,7 @@
         /* Table Container */
         .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
         
-        table { width: 100%; border-collapse: collapse; min-width: 1600px; white-space: nowrap; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 14px; }
         thead th { position: sticky; top: 0; background-color: #0056b3; color: white; padding: 12px 15px; text-align: left; z-index: 10; }
         tbody td { padding: 10px 15px; border-bottom: 1px solid #eee; }
         tbody tr:hover { background-color: #f1f1f1; }
@@ -53,7 +53,7 @@
 
         /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-card { background: white; padding: 30px; border-radius: 8px; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-card { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
@@ -76,9 +76,7 @@
 
     <div style="margin-bottom: 15px; display: flex; align-items: center;">
         <input type="text" id="searchInput" class="search-box" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
-        
         <input type="text" id="buyerFilter" class="filter-box" placeholder="Filter Buyer (Initials)" onkeyup="if(event.key === 'Enter') searchData()">
-        
         <button onclick="searchData()" class="btn-search">Search / Filter</button>
         <button onclick="resetAll()" style="padding: 10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline; margin-left:10px;">Reset</button>
     </div>
@@ -88,7 +86,8 @@
             <thead>
                 <tr>
                     <th style="width: 80px;">Actions</th>
-                    <th>Buyer</th> <th>Part No</th>
+                    <th>Buyer</th> 
+                    <th>Part No</th>
                     <th>Req ID</th>
                     <th>Hull</th>
                     <th>Description</th>
@@ -98,7 +97,7 @@
                     <th>QTY (Req)</th>
                     <th>Price (USD)</th>
                     <th>Total (USD)</th>
-                    <th>Lead Time</th>
+                    <th>Budget (USD)</th>   <th>T-Budget (USD)</th> <th>Selected</th>       <th>Delta (USD)</th>    <th>Lead Time</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -114,20 +113,31 @@
                 <label>Req ID</label>
                 <input type="text" id="edit_reqId">
             </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="width:50%">
+                    <label>Buyer (Initials)</label> 
+                    <input type="text" id="edit_buyer">
+                </div>
+                <div class="form-group" style="width:50%">
+                    <label>Selected (Status)</label> <input type="text" id="edit_selected">
+                </div>
+            </div>
             <div class="form-group">
-                <label>Buyer (Initials)</label> <input type="text" id="edit_buyer">
+                <label>Budget (Unit Price)</label> <input type="number" id="edit_budget" step="0.01">
             </div>
             <div class="form-group">
                 <label>Hull / Project</label>
                 <input type="text" id="edit_hull">
             </div>
-            <div class="form-group">
-                <label>Qty Required</label>
-                <input type="number" id="edit_qty">
-            </div>
-            <div class="form-group">
-                <label>UOM</label>
-                <input type="text" id="edit_uom">
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="width:50%">
+                    <label>Qty Required</label>
+                    <input type="number" id="edit_qty">
+                </div>
+                <div class="form-group" style="width:50%">
+                    <label>UOM</label>
+                    <input type="text" id="edit_uom">
+                </div>
             </div>
             <div class="form-group">
                 <label>Description (Updates Main Part)</label>
@@ -153,14 +163,14 @@
         // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
             searchInput.value = "";
-            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Loading database...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>Loading database...</td></tr>";
             try {
                 const q = query(collection(db, "parts"), limit(20));
                 const querySnapshot = await getDocs(q);
                 renderTable(querySnapshot);
             } catch (err) {
                 console.error("Firebase Error:", err);
-                tbody.innerHTML = `<tr><td colspan='13' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan='17' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
             }
         }
 
@@ -170,14 +180,10 @@
             loadInitial();
         }
 
-        // 2. SEARCH FUNCTION (Combines Part No + Buyer Filter)
+        // 2. SEARCH FUNCTION
         window.searchData = async () => {
             const term = searchInput.value.trim().toUpperCase();
-            
-            // If just buyer filter, we still have to scan (Firebase doesn't do deep array sub-field filtering easily without index)
-            // For simplicity in this structure, we query Part No if exists, otherwise load a batch and filter client-side.
-            
-            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>Searching...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>Searching...</td></tr>";
             
             try {
                 let querySnapshot;
@@ -186,13 +192,12 @@
                     const q = query(partRef, where("partNo", "==", term));
                     querySnapshot = await getDocs(q);
                 } else {
-                    // If only buyer filter, load top 50 (Client side filtering limitations apply on NoSQL without complex indexes)
                     const q = query(collection(db, "parts"), limit(50));
                     querySnapshot = await getDocs(q);
                 }
                 renderTable(querySnapshot);
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan='13' style='color:red;'>Search Error: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan='17' style='color:red;'>Search Error: ${err.message}</td></tr>`;
             }
         }
 
@@ -203,7 +208,7 @@
             const buyerFilterTerm = buyerInput.value.trim().toUpperCase();
 
             if(snapshot.empty) {
-                tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>No records found.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>No records found.</td></tr>";
                 return;
             }
 
@@ -217,19 +222,30 @@
                     if (data.quotes && data.quotes.length > 0) {
                         bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
                     }
-                    const price = bestQuote ? Number(bestQuote.price) : 0;
+                    const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
 
                     // Iterate Requisitions
                     data.requisitions.forEach((req, index) => {
                         
-                        // --- BUYER FILTER LOGIC ---
                         const reqBuyer = (req.buyer || "").toUpperCase();
-                        if (buyerFilterTerm && !reqBuyer.includes(buyerFilterTerm)) {
-                            return; // Skip this line if buyer doesn't match
-                        }
+                        if (buyerFilterTerm && !reqBuyer.includes(buyerFilterTerm)) return;
 
                         hasRows = true;
-                        const lineTotal = price * (req.qtyReq || 0);
+                        
+                        // Calculations
+                        const qty = req.qtyReq || 0;
+                        const budgetUnit = req.budget || 0;
+                        
+                        const quoteTotal = bestPrice * qty; // Quote Total
+                        const tBudget = budgetUnit * qty;   // Total Budget
+                        const delta = quoteTotal - tBudget; // Difference
+                        
+                        // Delta Color Logic
+                        let deltaColor = "#333";
+                        if(bestQuote) {
+                            if(delta > 0) deltaColor = "#d9534f"; // Red (Over Budget)
+                            if(delta <= 0) deltaColor = "#28a745"; // Green (Under/On Budget)
+                        }
 
                         const row = `
                             <tr>
@@ -237,16 +253,22 @@
                                     <button class="btn-icon" onclick="openEdit('${data.partNo}', ${index})" title="Edit Req">✏️</button>
                                     <button class="btn-icon btn-del" onclick="deleteReq('${data.partNo}', ${index})" title="Delete Line">🗑️</button>
                                 </td>
-                                <td><span class="buyer-badge">${req.buyer || '-'}</span></td> <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
+                                <td><span class="buyer-badge">${req.buyer || '-'}</span></td>
+                                <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
                                 <td><span class="req-badge">${req.reqId || '-'}</span></td>
                                 <td><span class="hull-badge">${req.hull || '-'}</span></td>
                                 <td>${data.desc || '-'}</td>
                                 <td><span style="background:${bestQuote ? (bestQuote.rank == 1 ? '#28a745' : '#ffc107') : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
                                 <td>${bestQuote ? bestQuote.supplier : '-'}</td>
                                 <td>${bestQuote ? bestQuote.date : '-'}</td>
-                                <td>${req.qtyReq || '-'}</td>
-                                <td class="col-currency">${bestQuote ? '$'+price.toFixed(2) : '-'}</td>
-                                <td class="col-currency" style="background:#e8f4ff;">${bestQuote ? '$'+lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
+                                <td>${qty}</td>
+                                <td class="col-currency">${bestQuote ? '$'+bestPrice.toFixed(2) : '-'}</td>
+                                <td class="col-currency" style="background:#e8f4ff;">${bestQuote ? '$'+quoteTotal.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
+                                
+                                <td class="col-currency">$${budgetUnit.toFixed(2)}</td>
+                                <td class="col-currency">$${tBudget.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                <td>${req.selected || '-'}</td>
+                                <td class="col-currency" style="font-weight:bold; color:${deltaColor};">${bestQuote ? '$'+delta.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
                                 <td>${bestQuote ? bestQuote.lead : '-'}</td>
                             </tr>
                         `;
@@ -256,7 +278,7 @@
             });
 
             if (!hasRows) {
-                 tbody.innerHTML = "<tr><td colspan='13' style='text-align:center; padding:20px;'>No matching requisitions found (Check Buyer Filter).</td></tr>";
+                 tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>No matching requisitions found.</td></tr>";
             }
         }
 
@@ -295,12 +317,16 @@
             // Edit Mode
             const req = data.requisitions[index];
             document.getElementById('edit_reqId').value = req.reqId;
-            document.getElementById('edit_buyer').value = req.buyer || ""; // Load Buyer
+            document.getElementById('edit_buyer').value = req.buyer || "";
             document.getElementById('edit_hull').value = req.hull;
             document.getElementById('edit_qty').value = req.qtyReq;
             document.getElementById('edit_uom').value = req.uom;
-            document.querySelector('.modal-title').innerText = "✏️ Modify Requisition";
+            
+            // NEW EDIT FIELDS
+            document.getElementById('edit_budget').value = req.budget || 0;
+            document.getElementById('edit_selected').value = req.selected || "";
 
+            document.querySelector('.modal-title').innerText = "✏️ Modify Requisition";
             document.getElementById('editModal').style.display = 'flex';
         }
 
@@ -320,10 +346,15 @@
 
                     const newReqData = {
                         reqId: document.getElementById('edit_reqId').value,
-                        buyer: document.getElementById('edit_buyer').value, // Save Buyer
+                        buyer: document.getElementById('edit_buyer').value,
                         hull: document.getElementById('edit_hull').value,
                         qtyReq: Number(document.getElementById('edit_qty').value),
                         uom: document.getElementById('edit_uom').value,
+                        
+                        // NEW SAVE FIELDS
+                        budget: Number(document.getElementById('edit_budget').value),
+                        selected: document.getElementById('edit_selected').value,
+
                         status: "Open",
                         dateAdded: new Date().toISOString()
                     };
@@ -342,10 +373,7 @@
             } catch (err) { alert("Error saving: " + err.message); }
         }
 
-        function refreshView() {
-            // Keep filter active when refreshing
-            searchData(); 
-        }
+        function refreshView() { searchData(); }
 
         loadInitial();
     </script>
