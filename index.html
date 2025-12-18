@@ -25,8 +25,9 @@
         .btn-orange { background-color: #fd7e14; }    
         .btn-red    { background-color: #dc3545; }
         
-        .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
-        .btn-search:hover { background-color: #004494; }
+        /* Optimization Button */
+        .btn-opt { background-color: #6610f2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 20px; }
+        .btn-opt:hover { background-color: #520dc2; }
 
         .btn-icon { padding: 5px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
         .btn-icon:hover { background: #eee; }
@@ -51,13 +52,12 @@
         .req-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; }
         .buyer-badge { color: #333; border: 1px solid rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
 
-        /* Pagination Controls */
         .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
         .page-info { font-weight: bold; color: #555; }
         .btn-nav { padding: 8px 16px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
 
-        /* Modal */
+        /* Modal & Detail Popup */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
@@ -66,28 +66,29 @@
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-        /* Detail Popup */
-        .detail-overlay { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; 
-        }
-        .detail-container { 
-            background: white; width: 90%; height: 90%; border-radius: 8px; 
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column;
-        }
-        .detail-header {
-            padding: 10px 15px; background: #eee; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center;
-        }
-        .btn-close-detail {
-            background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;
-        }
+        .detail-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .detail-container { background: white; width: 90%; height: 90%; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .detail-header { padding: 10px 15px; background: #eee; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+        .btn-close-detail { background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .detail-frame { flex: 1; width: 100%; border: none; }
     </style>
 </head>
 <body>
 
+    <script>
+        // Force reload on back button to prevent stale cache
+        window.addEventListener( "pageshow", function ( event ) {
+            var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
+            if ( historyTraversal ) { window.location.reload(); }
+        });
+    </script>
+
     <div class="header-container">
-        <h2>Rush Procurement Base</h2>
+        <div style="display:flex; align-items:center;">
+            <h2>Rush Procurement Base</h2>
+            <button onclick="runOptimization()" class="btn-opt" title="Click once to sort items into Active/Archive buckets">⚡ Optimize DB</button>
+            <span id="optStatus" style="margin-left: 10px; color: #28a745; font-weight: bold;"></span>
+        </div>
         <div>
             <a href="quotes.html" target="_blank" class="btn-add btn-grey">🔍 Quote Search</a>
             <a href="add-req.html" target="_blank" class="btn-add btn-green">+ Add Req</a>
@@ -95,13 +96,6 @@
             <a href="batch-quotes.html" target="_blank" class="btn-add btn-orange">⚡ Batch Quote</a>
             <a href="add-quote.html" target="_blank" class="btn-add btn-blue">+ Add Quote</a>
         </div>
-    </div>
-
-    <div style="margin-bottom: 15px; display: flex; align-items: center;">
-        <input type="text" id="searchInput" class="search-box" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
-        <input type="text" id="buyerFilter" class="filter-box" placeholder="Filter Buyer (Initials)" onkeyup="if(event.key === 'Enter') searchData()">
-        <button onclick="searchData()" class="btn-search">Search / Filter</button>
-        <button onclick="resetAll()" style="padding: 10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline; margin-left:10px;">Reset</button>
     </div>
 
     <div class="table-container">
@@ -143,7 +137,6 @@
         <div class="modal-card">
             <h3 class="modal-title">✏️ Modify Requisition</h3>
             <input type="hidden" id="edit_partNo">
-            
             <div class="form-group"><label>Req ID</label><input type="text" id="edit_reqId"></div>
             <div style="display: flex; gap: 10px;">
                 <div class="form-group" style="width:50%"><label>Buyer (Initials)</label><input type="text" id="edit_buyer"></div>
@@ -156,7 +149,6 @@
                 <div class="form-group" style="width:50%"><label>UOM</label><input type="text" id="edit_uom"></div>
             </div>
             <div class="form-group"><label>Description (Updates Main Part)</label><input type="text" id="edit_desc"></div>
-            
             <div class="modal-actions">
                 <button type="button" onclick="closeModal()" class="btn-add" style="background:#ccc; color:#333;">Cancel</button>
                 <button type="button" onclick="saveEdit()" class="btn-add btn-green">Save Changes</button>
@@ -175,22 +167,20 @@
     </div>
 
     <script type="module">
-        import { db, collection, getDocs, getDoc, doc, updateDoc, deleteDoc, query, where, limit } from './firebase-config.js';
+        import { db, collection, getDocs, getDoc, doc, updateDoc, writeBatch, query, where, limit } from './firebase-config.js';
 
-        // --- AUTH CHECK ---
         if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
         const paginationDiv = document.getElementById('paginationControls');
 
-        // --- GLOBAL STATE ---
+        // STATE
         let flatTableData = []; 
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
-        let isDataReady = false; // Prevents race conditions
+        let isDataReady = false;
 
-        // --- COLOR GENERATOR ---
         function getColorForString(str) {
             if (!str) return '#e9ecef';
             let hash = 0;
@@ -199,103 +189,141 @@
             return colors[Math.abs(hash % colors.length)];
         }
 
-        // 1. LOAD INITIAL DATA
+        // 1. FAST LOAD (BUCKET STRATEGY)
         window.loadInitial = async () => {
-            // Safe guard: Don't load if already loading, but do force load if empty
-            if (isDataReady && flatTableData.length > 0) {
-                renderTable(); // Just redraw if data exists
-                return;
-            }
-
-            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
+            if (isDataReady && flatTableData.length > 0) { renderTable(); return; }
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading Active Work Bucket...</td></tr>";
             
             try {
-                const q = query(collection(db, "parts"), limit(10000));
+                // QUERY ONLY ACTIVE PARTS
+                const q = query(collection(db, "parts"), where("bucket", "==", "active"), limit(5000));
                 const querySnapshot = await getDocs(q);
-                flatTableData = [];
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    if (data.requisitions && data.requisitions.length > 0) {
-                        let bestQuote = null;
-                        if (data.quotes && data.quotes.length > 0) {
-                            bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
-                        }
-                        const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
-
-                        data.requisitions.forEach((req, index) => {
-                            const qty = req.qtyReq || 0;
-                            const budgetUnit = req.budget || 0;
-                            const quoteTotal = bestPrice * qty; 
-                            const tBudget = budgetUnit * qty;   
-                            const delta = quoteTotal - tBudget; 
-
-                            flatTableData.push({
-                                id: Math.random().toString(36),
-                                partNo: data.partNo,
-                                realIndex: index,
-                                buyer: (req.buyer || "").toString(),
-                                reqId: (req.reqId || "").toString(),
-                                hull: (req.hull || "").toString(),
-                                desc: (data.desc || "").toString(),
-                                rank: bestQuote ? bestQuote.rank.toString() : "-",
-                                supplier: bestQuote ? bestQuote.supplier : "-",
-                                quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
-                                qty: qty.toString(),
-                                price: bestQuote ? bestPrice.toFixed(2) : "-",
-                                total: bestQuote ? quoteTotal.toFixed(2) : "-",
-                                budget: budgetUnit.toFixed(2),
-                                tBudget: tBudget.toFixed(2),
-                                selected: (req.selected || "").toString(),
-                                delta: bestQuote ? delta.toFixed(2) : "-",
-                                lead: bestQuote ? (bestQuote.lead || "-") : "-",
-                                rawDelta: delta,
-                                hasQuote: !!bestQuote,
-                                isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
-                                isSelected: false
-                            });
-                        });
-                    }
-                });
                 
-                isDataReady = true; // Mark as ready
-                filterData(); // Run filter/render now that data is populated
-
+                // FALLBACK: If bucket is empty, maybe they haven't optimized yet. Load everything to be safe.
+                if (querySnapshot.empty) {
+                    console.log("No active bucket found. Falling back to full load.");
+                    const qAll = query(collection(db, "parts"), limit(5000));
+                    processSnapshot(await getDocs(qAll));
+                } else {
+                    processSnapshot(querySnapshot);
+                }
             } catch (err) {
                 console.error("Firebase Error:", err);
-                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
+                // Try catch-all if index missing
+                const qAll = query(collection(db, "parts"), limit(2000));
+                processSnapshot(await getDocs(qAll));
             }
         }
 
-        window.resetAll = () => {
-            document.getElementById('searchInput').value = "";
-            document.getElementById('buyerFilter').value = "";
-            isDataReady = false; 
-            loadInitial();
-        }
+        function processSnapshot(snapshot) {
+            flatTableData = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.requisitions && data.requisitions.length > 0) {
+                    let bestQuote = null;
+                    if (data.quotes && data.quotes.length > 0) {
+                        bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
+                    }
+                    const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
 
-        window.searchData = async () => {
-            if(!isDataReady) {
-                alert("Please wait for data to finish loading.");
-                return;
-            }
-            
-            const term = document.getElementById('searchInput').value.trim().toUpperCase();
-            if(term && flatTableData.length === 0) {
-                 try {
-                    const q = query(collection(db, "parts"), where("partNo", "==", term));
-                    await getDocs(q);
-                    isDataReady = false;
-                    loadInitial(); 
-                    return;
-                 } catch(err) { console.error(err); }
-            }
+                    data.requisitions.forEach((req, index) => {
+                        const qty = req.qtyReq || 0;
+                        const budgetUnit = req.budget || 0;
+                        const quoteTotal = bestPrice * qty; 
+                        const tBudget = budgetUnit * qty;   
+                        const delta = quoteTotal - tBudget; 
+
+                        flatTableData.push({
+                            id: Math.random().toString(36),
+                            partNo: data.partNo,
+                            realIndex: index,
+                            buyer: (req.buyer || "").toString(),
+                            reqId: (req.reqId || "").toString(),
+                            hull: (req.hull || "").toString(),
+                            desc: (data.desc || "").toString(),
+                            rank: bestQuote ? bestQuote.rank.toString() : "-",
+                            supplier: bestQuote ? bestQuote.supplier : "-",
+                            quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
+                            qty: qty.toString(),
+                            price: bestQuote ? bestPrice.toFixed(2) : "-",
+                            total: bestQuote ? quoteTotal.toFixed(2) : "-",
+                            budget: budgetUnit.toFixed(2),
+                            tBudget: tBudget.toFixed(2),
+                            selected: (req.selected || "").toString(),
+                            delta: bestQuote ? delta.toFixed(2) : "-",
+                            lead: bestQuote ? (bestQuote.lead || "-") : "-",
+                            rawDelta: delta,
+                            hasQuote: !!bestQuote,
+                            isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
+                            isSelected: false
+                        });
+                    });
+                }
+            });
+            isDataReady = true;
             filterData();
         }
 
-        window.filterData = () => {
-            if (!isDataReady) return; // Stop filter from running on empty array
+        // --- OPTIMIZATION SCRIPT (Bucketing) ---
+        window.runOptimization = async () => {
+            const btn = document.querySelector('.btn-opt');
+            const status = document.getElementById('optStatus');
+            if(!confirm("This will scan all records and sort them into Active/Archive buckets for speed. Continue?")) return;
 
+            btn.disabled = true;
+            btn.textContent = "Scanning...";
+            status.textContent = "Please wait...";
+
+            try {
+                // Get EVERYTHING (Requires patience)
+                const q = query(collection(db, "parts")); 
+                const snapshot = await getDocs(q);
+                
+                const batchSize = 400; 
+                let batch = writeBatch(db);
+                let count = 0;
+                let processed = 0;
+
+                snapshot.docs.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const hasActiveReq = data.requisitions && data.requisitions.length > 0;
+                    
+                    // Logic: Set bucket field
+                    const currentBucket = data.bucket;
+                    const correctBucket = hasActiveReq ? "active" : "archive";
+
+                    if (currentBucket !== correctBucket) {
+                        const ref = doc(db, "parts", docSnap.id);
+                        batch.update(ref, { bucket: correctBucket });
+                        count++;
+                    }
+
+                    if (count >= batchSize) {
+                        batch.commit();
+                        batch = writeBatch(db);
+                        count = 0;
+                    }
+                    processed++;
+                });
+
+                if (count > 0) await batch.commit(); // Commit remainders
+
+                status.textContent = "Done! Reloading...";
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+
+            } catch (err) {
+                alert("Error optimizing: " + err.message);
+                btn.disabled = false;
+                btn.textContent = "⚡ Optimize DB";
+            }
+        }
+
+        // --- STANDARD LOGIC ---
+        
+        window.filterData = () => {
+            if (!isDataReady) return;
             const inputs = document.querySelectorAll('.col-search');
             filteredData = flatTableData.filter(row => {
                 if (!row.buyer.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
@@ -322,8 +350,7 @@
 
         window.toggleSelectAll = () => {
             const masterCheck = document.getElementById('selectAll');
-            const isChecked = masterCheck.checked;
-            filteredData.forEach(row => { row.isSelected = isChecked; });
+            filteredData.forEach(row => { row.isSelected = masterCheck.checked; });
             renderTable();
         }
 
@@ -338,7 +365,7 @@
         window.deleteSelected = async () => {
             const selectedRows = flatTableData.filter(r => r.isSelected);
             if (selectedRows.length === 0) return alert("No records selected!");
-            if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected records?`)) return;
+            if (!confirm(`Delete ${selectedRows.length} records?`)) return;
 
             const partsToUpdate = {}; 
             selectedRows.forEach(row => {
@@ -353,14 +380,18 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         const updatedReqs = data.requisitions.filter(req => !reqIdsToRemove.includes(req.reqId));
-                        await updateDoc(docRef, { requisitions: updatedReqs });
+                        
+                        // AUTO-ARCHIVE LOGIC
+                        const newBucket = updatedReqs.length > 0 ? "active" : "archive";
+                        
+                        await updateDoc(docRef, { requisitions: updatedReqs, bucket: newBucket });
                     }
                 }
-                alert("Bulk delete complete!");
+                alert("Deleted.");
                 document.getElementById('selectAll').checked = false; 
                 isDataReady = false;
                 loadInitial(); 
-            } catch (err) { alert("Error during bulk delete: " + err.message); }
+            } catch (err) { alert("Error: " + err.message); }
         }
 
         function renderTable() {
@@ -441,7 +472,11 @@
                     const data = docSnap.data();
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
-                    await updateDoc(docRef, { requisitions: updatedReqs });
+                    
+                    // AUTO-ARCHIVE Logic
+                    const newBucket = updatedReqs.length > 0 ? "active" : "archive";
+
+                    await updateDoc(docRef, { requisitions: updatedReqs, bucket: newBucket });
                     isDataReady = false;
                     loadInitial();
                 }
@@ -449,8 +484,6 @@
         }
 
         window.openEdit = async (partNo, index) => {
-            currentEditPart = partNo;
-            currentEditIndex = index;
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
@@ -495,7 +528,10 @@
                          newReqData.dateAdded = data.requisitions[index].dateAdded;
                     }
                     updatedReqs[index] = newReqData;
-                    await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
+                    
+                    // ENSURE BUCKET IS ACTIVE ON EDIT
+                    await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value, bucket: "active" });
+                    
                     closeModal();
                     isDataReady = false;
                     loadInitial();
@@ -517,6 +553,15 @@
             loadInitial();
         }
 
+        window.resetAll = () => {
+            document.querySelectorAll('.col-search').forEach(i => i.value = "");
+            document.getElementById('searchInput').value = "";
+            document.getElementById('buyerFilter').value = "";
+            isDataReady = false;
+            loadInitial();
+        }
+
+        // Global Bindings
         window.filterData = filterData;
         window.toggleSelectAll = toggleSelectAll;
         window.toggleRow = toggleRow;
@@ -529,21 +574,9 @@
         window.resetAll = resetAll;
         window.openDetailModal = openDetailModal;
         window.closeDetailModal = closeDetailModal;
+        window.runOptimization = runOptimization;
 
-        // --- SAFE RELOAD LOGIC ---
-        // 1. Force load on cold start
-        document.addEventListener("DOMContentLoaded", () => {
-            isDataReady = false;
-            loadInitial();
-        });
-
-        // 2. Force load on Back Button (BFCache Restore)
-        window.addEventListener("pageshow", (event) => {
-            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                isDataReady = false;
-                loadInitial();
-            }
-        });
+        document.addEventListener("DOMContentLoaded", () => { isDataReady = false; loadInitial(); });
 
     </script>
 </body>
