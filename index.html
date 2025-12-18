@@ -43,7 +43,6 @@
         /* Column Search Inputs */
         .col-search { width: 90%; padding: 4px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; color: #333; }
 
-        /* Part Link */
         a.part-link { color: #0056b3; font-weight: bold; text-decoration: underline; cursor: pointer; }
         a.part-link:hover { color: #003366; }
         
@@ -58,7 +57,7 @@
         .btn-nav { padding: 8px 16px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
 
-        /* --- EDIT MODAL (Small) --- */
+        /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
@@ -67,7 +66,7 @@
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-        /* --- DETAIL POPUP IFRAME (Large) --- */
+        /* Detail Popup */
         .detail-overlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; 
@@ -86,13 +85,6 @@
     </style>
 </head>
 <body>
-
-    <script>
-        window.addEventListener( "pageshow", function ( event ) {
-            var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
-            if ( historyTraversal ) { window.location.reload(); }
-        });
-    </script>
 
     <div class="header-container">
         <h2>Rush Procurement Base</h2>
@@ -185,6 +177,7 @@
     <script type="module">
         import { db, collection, getDocs, getDoc, doc, updateDoc, deleteDoc, query, where, limit } from './firebase-config.js';
 
+        // --- AUTH CHECK ---
         if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
@@ -195,6 +188,7 @@
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
+        let isLoaded = false;
 
         // --- COLOR GENERATOR ---
         function getColorForString(str) {
@@ -202,12 +196,14 @@
             let hash = 0;
             for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
             const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc', '#ffe5d9'];
-            const index = Math.abs(hash % colors.length);
-            return colors[index];
+            return colors[Math.abs(hash % colors.length)];
         }
 
-        // 1. LOAD INITIAL DATA
+        // 1. LOAD INITIAL DATA (Safe Load)
         window.loadInitial = async () => {
+            if(isLoaded) return; // Prevent double firing
+            isLoaded = true;
+
             tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
             try {
                 const q = query(collection(db, "parts"), limit(10000));
@@ -267,6 +263,7 @@
         window.resetAll = () => {
             document.getElementById('searchInput').value = "";
             document.getElementById('buyerFilter').value = "";
+            isLoaded = false; 
             loadInitial();
         }
 
@@ -274,10 +271,10 @@
             const term = document.getElementById('searchInput').value.trim().toUpperCase();
             if(term && flatTableData.length === 0) {
                  try {
-                    // Try fetch if list empty
                     const q = query(collection(db, "parts"), where("partNo", "==", term));
                     await getDocs(q);
-                    loadInitial(); // Simplest path is reload all
+                    isLoaded = false;
+                    loadInitial(); 
                     return;
                  } catch(err) { console.error(err); }
             }
@@ -347,6 +344,7 @@
                 }
                 alert("Bulk delete complete!");
                 document.getElementById('selectAll').checked = false; 
+                isLoaded = false;
                 loadInitial(); 
             } catch (err) { alert("Error during bulk delete: " + err.message); }
         }
@@ -430,12 +428,15 @@
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
                     await updateDoc(docRef, { requisitions: updatedReqs });
+                    isLoaded = false;
                     loadInitial();
                 }
             } catch (err) { alert("Error: " + err.message); }
         }
 
         window.openEdit = async (partNo, index) => {
+            currentEditPart = partNo;
+            currentEditIndex = index;
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
@@ -474,7 +475,7 @@
                         budget: Number(document.getElementById('edit_budget').value),
                         selected: document.getElementById('edit_selected').value,
                         status: "Open",
-                        dateAdded: new Date().toISOString()
+                        dateAdded: newReqData && newReqData.dateAdded ? newReqData.dateAdded : new Date().toISOString()
                     };
                     if(data.requisitions[index] && data.requisitions[index].dateAdded) {
                          newReqData.dateAdded = data.requisitions[index].dateAdded;
@@ -482,26 +483,27 @@
                     updatedReqs[index] = newReqData;
                     await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
                     closeModal();
+                    isLoaded = false;
                     loadInitial();
                 }
             } catch (err) { alert("Error saving: " + err.message); }
         }
 
-        // --- POPUP DETAIL LOGIC ---
         window.openDetailModal = (partNo) => {
             const modal = document.getElementById('detailModal');
             const frame = document.getElementById('detailFrame');
-            frame.src = `detail.html?part=${partNo}`; // Load detail page in iframe
+            frame.src = `detail.html?part=${partNo}`; 
             modal.style.display = 'flex';
         }
 
         window.closeDetailModal = () => {
             document.getElementById('detailModal').style.display = 'none';
-            document.getElementById('detailFrame').src = ""; // Clear source
-            loadInitial(); // Refresh main table to capture any edits made in popup
+            document.getElementById('detailFrame').src = "";
+            isLoaded = false;
+            loadInitial();
         }
 
-        // Global Bindings
+        // Bind global
         window.filterData = filterData;
         window.toggleSelectAll = toggleSelectAll;
         window.toggleRow = toggleRow;
@@ -515,7 +517,21 @@
         window.openDetailModal = openDetailModal;
         window.closeDetailModal = closeDetailModal;
 
-        loadInitial();
+        // --- RELOAD LOGIC ---
+        // Ensure data loads when DOM is ready
+        document.addEventListener("DOMContentLoaded", () => {
+            isLoaded = false;
+            loadInitial();
+        });
+
+        // Ensure data loads if coming from Back Cache
+        window.addEventListener("pageshow", (event) => {
+            if (event.persisted) {
+                isLoaded = false;
+                loadInitial();
+            }
+        });
+
     </script>
 </body>
 </html>
