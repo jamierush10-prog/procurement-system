@@ -1,7 +1,6 @@
-// firebase-config.js
-import { initializeApp } from "firebase/app";
+// firebase-config.js (CDN ESM — works in browser with Live Server)
 
-// Firestore (what quotes.html needs)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -10,11 +9,10 @@ import {
   limit,
   orderBy,
   startAfter,
-  where,
-} from "firebase/firestore";
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// Analytics (optional)
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCEtXeuaWJRg3PM7vXJZnRuJDfq8ldT1Tc",
@@ -23,13 +21,13 @@ const firebaseConfig = {
   storageBucket: "procurement-app-869b8.firebasestorage.app",
   messagingSenderId: "546192883144",
   appId: "1:546192883144:web:2880e96220e96c3ea694fd",
-  measurementId: "G-CDXJC4VQ0Q",
+  measurementId: "G-CDXJC4VQ0Q"
 };
 
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Analytics can fail on file:// or unsupported envs — keep it from breaking your app.
+// Optional analytics (won’t break if unsupported)
 export let analytics = null;
 (async () => {
   try {
@@ -39,6 +37,5 @@ export let analytics = null;
   }
 })();
 
-// Re-export helpers so your quotes.html can do:
-// import { db, collection, getDocs, query, limit, orderBy, startAfter, where } from './firebase-config.js';
+// re-export helpers for quotes.html
 export { collection, getDocs, query, limit, orderBy, startAfter, where };
