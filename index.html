@@ -79,6 +79,7 @@
 <body>
 
     <script>
+        // Force reload on back button to prevent stale cache
         window.addEventListener( "pageshow", function ( event ) {
             var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
             if ( historyTraversal ) { window.location.reload(); }
@@ -88,7 +89,7 @@
     <div class="header-container">
         <div style="display:flex; align-items:center;">
             <h2>Rush Procurement Base</h2>
-            <button onclick="window.runDeepScan()" class="btn-opt" title="Scans entire DB to find active reqs">⚡ Optimize DB (Deep Scan)</button>
+            <button onclick="window.runDeepScan()" class="btn-opt" title="Re-scans DB to organize active files">⚡ Optimize DB</button>
         </div>
         <div>
             <a href="quotes.html" target="_blank" class="btn-add btn-grey">🔍 Quote Search</a>
@@ -205,37 +206,38 @@
             return colors[Math.abs(hash % colors.length)];
         }
 
-        // --- 1. LOAD DATA ---
+        // 1. ROBUST LOAD (No bucket dependency)
         window.loadInitial = async () => {
-            if (isDataReady && flatTableData.length > 0) { renderTable(); return; }
-            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Connecting...</td></tr>";
+            if (isDataReady && flatTableData.length > 0) return;
+            
+            // Set Loading UI
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Downloading database...</td></tr>";
+            updateStatus("Connecting to Database (Fetching 15,000 records)...", "blue");
             
             try {
-                // TRY ACTIVE BUCKET FIRST
-                updateStatus("Checking Active Work Bucket...", "blue");
-                const q = query(collection(db, "parts"), where("bucket", "==", "active"), limit(5000));
+                // Large Direct Query
+                const q = query(collection(db, "parts"), limit(15000));
                 const querySnapshot = await getDocs(q);
                 
-                if (querySnapshot.empty) {
-                    // IF EMPTY, SHOW WARNING
-                    updateStatus("⚠️ No 'Active' records found. Click 'Optimize DB' to repair database.", "red");
-                    tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px; color:red; font-weight:bold;'>Database requires optimization. Click the purple '⚡ Optimize DB' button above.</td></tr>";
-                } else {
-                    processSnapshot(querySnapshot, true);
-                }
+                processSnapshot(querySnapshot);
+                updateStatus(`Loaded ${querySnapshot.size} records.`, "green");
+
             } catch (err) {
-                console.error("Index Error:", err);
-                updateStatus("Index Error. Please run Optimization.", "red");
+                console.error("Firebase Error:", err);
+                updateStatus("System Error: " + err.message, "red");
+                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
             }
         }
 
-        function processSnapshot(snapshot, isOptimized) {
+        function processSnapshot(snapshot) {
             flatTableData = [];
             let activeCount = 0;
 
             snapshot.forEach((doc) => {
                 const data = doc.data();
+                // Filter strict: Only show active requisitions
                 if (data.requisitions && data.requisitions.length > 0) {
+                    
                     let bestQuote = null;
                     if (data.quotes && data.quotes.length > 0) {
                         bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
@@ -279,29 +281,21 @@
             });
             
             isDataReady = true;
-            if(isOptimized) {
-                updateStatus(`System Optimized. Loaded ${activeCount} active requisitions instantly.`, "green");
-            }
+            updateStatus(`Found ${activeCount} Active Requisitions in scanned data.`, "green");
             filterData();
         }
 
-        // --- 2. DEEP SCAN OPTIMIZER (The Fix) ---
+        // --- OPTIMIZATION (Now just a manual Deep Clean tool) ---
         window.runDeepScan = async () => {
-            if(!confirm("⚠️ DEEP SCAN WARNING:\nThis will scan up to 20,000 records to find missing requisitions.\nThis process may take 10-20 seconds.\n\nClick OK to start.")) return;
-
+            if(!confirm("Start Deep Scan? This sorts records into Active/Archive buckets for future speed.")) return;
             const btn = document.querySelector('.btn-opt');
             btn.disabled = true;
-            btn.textContent = "Scanning DB (Please Wait)...";
-            updateStatus("Starting Deep Scan (Limit 20,000)...", "blue");
+            updateStatus("Deep Scan: Fetching 20,000 records...", "blue");
 
             try {
-                // MEGA QUERY - NO BUCKET FILTER
                 const q = query(collection(db, "parts"), limit(20000)); 
                 const snapshot = await getDocs(q);
                 
-                updateStatus(`Downloaded ${snapshot.size} records. analyzing and sorting...`, "blue");
-
-                const batchSize = 400; 
                 let batch = writeBatch(db);
                 let count = 0;
                 let updates = 0;
@@ -309,36 +303,20 @@
                 snapshot.docs.forEach((docSnap) => {
                     const data = docSnap.data();
                     const hasActiveReq = data.requisitions && data.requisitions.length > 0;
-                    
-                    const currentBucket = data.bucket;
                     const correctBucket = hasActiveReq ? "active" : "archive";
 
-                    // Fix bucket if wrong
-                    if (currentBucket !== correctBucket) {
-                        const ref = doc(db, "parts", docSnap.id);
-                        batch.update(ref, { bucket: correctBucket });
-                        count++;
-                        updates++;
+                    if (data.bucket !== correctBucket) {
+                        batch.update(doc(db, "parts", docSnap.id), { bucket: correctBucket });
+                        count++; updates++;
                     }
-
-                    if (count >= batchSize) {
-                        batch.commit();
-                        batch = writeBatch(db);
-                        count = 0;
-                    }
+                    if (count >= 400) { batch.commit(); batch = writeBatch(db); count = 0; }
                 });
 
                 if (count > 0) await batch.commit(); 
-
-                updateStatus(`✅ Deep Scan Complete. Fixed ${updates} records. Reloading...`, "green");
-                setTimeout(() => { window.location.reload(); }, 2000);
-
-            } catch (err) {
-                alert("Error optimizing: " + err.message);
+                updateStatus(`Optimization Complete. Updated ${updates} records.`, "green");
                 btn.disabled = false;
-                btn.textContent = "⚡ Optimize DB (Deep Scan)";
-                updateStatus("Scan Failed: " + err.message, "red");
-            }
+                setTimeout(() => window.location.reload(), 1500);
+            } catch (err) { updateStatus("Scan Failed: " + err.message, "red"); btn.disabled = false; }
         }
 
         window.resetAll = () => {
@@ -352,19 +330,14 @@
         window.searchData = async () => {
             const term = document.getElementById('searchInput').value.trim().toUpperCase();
             if(term && flatTableData.length === 0) {
-                 // Manual fallback search if bucket failed
-                 updateStatus("Manual search...", "blue");
+                 updateStatus("Searching specific part...", "blue");
                  try {
                     const q = query(collection(db, "parts"), where("partNo", "==", term));
                     const snap = await getDocs(q);
-                    // Just a trigger to load logic
+                    // Just force a reload to capture it
                     if(!snap.empty) {
-                        // If we found it by ID, force a bucket update on it so it shows up next time
-                        const d = snap.docs[0];
-                        if(d.data().requisitions.length > 0 && d.data().bucket !== 'active') {
-                            await updateDoc(doc(db, "parts", d.id), { bucket: "active" });
-                            window.location.reload();
-                        }
+                        isDataReady = false;
+                        loadInitial();
                     }
                  } catch(err) { console.error(err); }
             }
