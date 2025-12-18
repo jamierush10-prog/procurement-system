@@ -25,9 +25,8 @@
         .btn-orange { background-color: #fd7e14; }    
         .btn-red    { background-color: #dc3545; }
         
-        /* Optimization Button */
-        .btn-opt { background-color: #6610f2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 20px; }
-        .btn-opt:hover { background-color: #520dc2; }
+        .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
+        .btn-search:hover { background-color: #004494; }
 
         .btn-icon { padding: 5px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
         .btn-icon:hover { background: #eee; }
@@ -57,6 +56,9 @@
         .btn-nav { padding: 8px 16px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
 
+        /* Status Bar */
+        #statusBar { background: #e2e3e5; color: #383d41; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #d6d8db; font-size: 14px; font-family: monospace; }
+
         /* Modal & Detail Popup */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
@@ -76,7 +78,7 @@
 <body>
 
     <script>
-        // Browser Refresh Logic
+        // Force reload on back button to prevent stale cache
         window.addEventListener( "pageshow", function ( event ) {
             var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
             if ( historyTraversal ) { window.location.reload(); }
@@ -84,11 +86,7 @@
     </script>
 
     <div class="header-container">
-        <div style="display:flex; align-items:center;">
-            <h2>Rush Procurement Base</h2>
-            <button onclick="window.runOptimization()" class="btn-opt" title="Sorts DB into Active/Archive Buckets">⚡ Optimize DB</button>
-            <span id="optStatus" style="margin-left: 10px; color: #28a745; font-weight: bold;"></span>
-        </div>
+        <h2>Rush Procurement Base</h2>
         <div>
             <a href="quotes.html" target="_blank" class="btn-add btn-grey">🔍 Quote Search</a>
             <a href="add-req.html" target="_blank" class="btn-add btn-green">+ Add Req</a>
@@ -96,6 +94,15 @@
             <a href="batch-quotes.html" target="_blank" class="btn-add btn-orange">⚡ Batch Quote</a>
             <a href="add-quote.html" target="_blank" class="btn-add btn-blue">+ Add Quote</a>
         </div>
+    </div>
+
+    <div id="statusBar">Initializing system...</div>
+
+    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+        <input type="text" id="searchInput" class="search-box" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
+        <input type="text" id="buyerFilter" class="filter-box" placeholder="Filter Buyer (Initials)" onkeyup="if(event.key === 'Enter') searchData()">
+        <button onclick="searchData()" class="btn-search">Search / Filter</button>
+        <button onclick="resetAll()" style="padding: 10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline; margin-left:10px;">Reset</button>
     </div>
 
     <div class="table-container">
@@ -167,11 +174,12 @@
     </div>
 
     <script type="module">
-        import { db, collection, getDocs, getDoc, doc, updateDoc, writeBatch, query, where, limit } from './firebase-config.js';
+        import { db, collection, getDocs, getDoc, doc, updateDoc, query, where, limit } from './firebase-config.js';
 
         if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
+        const statusDiv = document.getElementById('statusBar');
         const paginationDiv = document.getElementById('paginationControls');
 
         // STATE
@@ -181,6 +189,11 @@
         const itemsPerPage = 50;
         let isDataReady = false;
 
+        function updateStatus(msg, color='black') {
+            statusDiv.textContent = `> ${msg}`;
+            statusDiv.style.color = color;
+        }
+
         function getColorForString(str) {
             if (!str) return '#e9ecef';
             let hash = 0;
@@ -189,147 +202,102 @@
             return colors[Math.abs(hash % colors.length)];
         }
 
-        // --- 1. LOAD DATA WITH FALLBACK ---
+        // 1. SIMPLE LOAD (Reliable)
         window.loadInitial = async () => {
-            if (isDataReady && flatTableData.length > 0) { renderTable(); return; }
-            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading database...</td></tr>";
+            if (isDataReady && flatTableData.length > 0) return;
+            
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Downloading latest data...</td></tr>";
+            updateStatus("Connecting to Database...", "blue");
             
             try {
-                // ATTEMPT 1: Load Active Bucket (Fast)
-                const q = query(collection(db, "parts"), where("bucket", "==", "active"), limit(5000));
+                // Simple Query: Last 2000 items. No complex where clauses.
+                const q = query(collection(db, "parts"), limit(2000));
                 const querySnapshot = await getDocs(q);
                 
-                if (querySnapshot.empty) {
-                    console.warn("Active bucket empty. Triggering Fallback Load...");
-                    await loadFallback(); // Trigger fallback if optimized bucket is empty
-                } else {
-                    processSnapshot(querySnapshot);
-                }
-            } catch (err) {
-                console.error("Index Error:", err);
-                await loadFallback(); // Trigger fallback on error
-            }
-        }
+                flatTableData = [];
+                let activeCount = 0;
 
-        // FALLBACK LOADER (Loads generic data so user sees SOMETHING)
-        async function loadFallback() {
-            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px; color:#6f42c1;'><b>⚠️ Optimization Required</b><br>Loading raw data... Please click '⚡ Optimize DB' when loaded.</td></tr>";
-            try {
-                const qAll = query(collection(db, "parts"), limit(2000)); // Load recent 2000
-                const snap = await getDocs(qAll);
-                processSnapshot(snap);
-            } catch(e) {
-                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Critical Error: ${e.message}</td></tr>`;
-            }
-        }
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // FILTER IN MEMORY (Reliable)
+                    if (data.requisitions && data.requisitions.length > 0) {
+                        
+                        let bestQuote = null;
+                        if (data.quotes && data.quotes.length > 0) {
+                            bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
+                        }
+                        const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
 
-        function processSnapshot(snapshot) {
-            flatTableData = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.requisitions && data.requisitions.length > 0) {
-                    let bestQuote = null;
-                    if (data.quotes && data.quotes.length > 0) {
-                        bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
-                    }
-                    const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
+                        data.requisitions.forEach((req, index) => {
+                            activeCount++;
+                            const qty = req.qtyReq || 0;
+                            const budgetUnit = req.budget || 0;
+                            const quoteTotal = bestPrice * qty; 
+                            const tBudget = budgetUnit * qty;   
+                            const delta = quoteTotal - tBudget; 
 
-                    data.requisitions.forEach((req, index) => {
-                        const qty = req.qtyReq || 0;
-                        const budgetUnit = req.budget || 0;
-                        const quoteTotal = bestPrice * qty; 
-                        const tBudget = budgetUnit * qty;   
-                        const delta = quoteTotal - tBudget; 
-
-                        flatTableData.push({
-                            id: Math.random().toString(36),
-                            partNo: data.partNo,
-                            realIndex: index,
-                            buyer: (req.buyer || "").toString(),
-                            reqId: (req.reqId || "").toString(),
-                            hull: (req.hull || "").toString(),
-                            desc: (data.desc || "").toString(),
-                            rank: bestQuote ? bestQuote.rank.toString() : "-",
-                            supplier: bestQuote ? bestQuote.supplier : "-",
-                            quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
-                            qty: qty.toString(),
-                            price: bestQuote ? bestPrice.toFixed(2) : "-",
-                            total: bestQuote ? quoteTotal.toFixed(2) : "-",
-                            budget: budgetUnit.toFixed(2),
-                            tBudget: tBudget.toFixed(2),
-                            selected: (req.selected || "").toString(),
-                            delta: bestQuote ? delta.toFixed(2) : "-",
-                            lead: bestQuote ? (bestQuote.lead || "-") : "-",
-                            rawDelta: delta,
-                            hasQuote: !!bestQuote,
-                            isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
-                            isSelected: false
+                            flatTableData.push({
+                                id: Math.random().toString(36),
+                                partNo: data.partNo,
+                                realIndex: index,
+                                buyer: (req.buyer || "").toString(),
+                                reqId: (req.reqId || "").toString(),
+                                hull: (req.hull || "").toString(),
+                                desc: (data.desc || "").toString(),
+                                rank: bestQuote ? bestQuote.rank.toString() : "-",
+                                supplier: bestQuote ? bestQuote.supplier : "-",
+                                quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
+                                qty: qty.toString(),
+                                price: bestQuote ? bestPrice.toFixed(2) : "-",
+                                total: bestQuote ? quoteTotal.toFixed(2) : "-",
+                                budget: budgetUnit.toFixed(2),
+                                tBudget: tBudget.toFixed(2),
+                                selected: (req.selected || "").toString(),
+                                delta: bestQuote ? delta.toFixed(2) : "-",
+                                lead: bestQuote ? (bestQuote.lead || "-") : "-",
+                                rawDelta: delta,
+                                hasQuote: !!bestQuote,
+                                isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
+                                isSelected: false
+                            });
                         });
-                    });
-                }
-            });
-            isDataReady = true;
+                    }
+                });
+                
+                isDataReady = true;
+                updateStatus(`Data Loaded. Scanned ${querySnapshot.size} parts. Found ${activeCount} active requisitions.`, "green");
+                filterData();
+
+            } catch (err) {
+                console.error("Firebase Error:", err);
+                updateStatus("System Error: " + err.message, "red");
+                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
+            }
+        }
+
+        window.resetAll = () => {
+            document.getElementById('searchInput').value = "";
+            document.getElementById('buyerFilter').value = "";
+            document.querySelectorAll('.col-search').forEach(i => i.value = "");
+            isDataReady = false; 
+            loadInitial();
+        }
+
+        window.searchData = async () => {
+            const term = document.getElementById('searchInput').value.trim().toUpperCase();
+            if(term && flatTableData.length === 0) {
+                 updateStatus("Searching specific part in database...", "blue");
+                 try {
+                    const q = query(collection(db, "parts"), where("partNo", "==", term));
+                    await getDocs(q); // Just warms up cache
+                    isDataReady = false;
+                    loadInitial(); 
+                    return;
+                 } catch(err) { console.error(err); }
+            }
             filterData();
         }
 
-        // --- OPTIMIZATION SCRIPT (Migrate Data to Buckets) ---
-        window.runOptimization = async () => {
-            const btn = document.querySelector('.btn-opt');
-            const status = document.getElementById('optStatus');
-            if(!confirm("This will scan ALL records and organize them for speed. This may take a moment. Continue?")) return;
-
-            btn.disabled = true;
-            btn.textContent = "Scanning DB...";
-            status.textContent = "Starting...";
-
-            try {
-                // 1. Get ALL Docs (Limit 5000 for safety)
-                const q = query(collection(db, "parts"), limit(5000)); 
-                const snapshot = await getDocs(q);
-                
-                const batchSize = 400; 
-                let batch = writeBatch(db);
-                let count = 0;
-                let processed = 0;
-                let updates = 0;
-
-                snapshot.docs.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const hasActiveReq = data.requisitions && data.requisitions.length > 0;
-                    
-                    // Logic: Set bucket field
-                    const currentBucket = data.bucket;
-                    const correctBucket = hasActiveReq ? "active" : "archive";
-
-                    // Only update if wrong or missing
-                    if (currentBucket !== correctBucket) {
-                        const ref = doc(db, "parts", docSnap.id);
-                        batch.update(ref, { bucket: correctBucket });
-                        count++;
-                        updates++;
-                    }
-
-                    if (count >= batchSize) {
-                        batch.commit();
-                        batch = writeBatch(db);
-                        count = 0;
-                    }
-                    processed++;
-                });
-
-                if (count > 0) await batch.commit(); 
-
-                status.textContent = `Success! Updated ${updates} records. Reloading...`;
-                setTimeout(() => { window.location.reload(); }, 1500);
-
-            } catch (err) {
-                alert("Error optimizing: " + err.message);
-                btn.disabled = false;
-                btn.textContent = "⚡ Optimize DB";
-            }
-        }
-
-        // --- STANDARD LOGIC ---
         window.filterData = () => {
             if (!isDataReady) return;
             const inputs = document.querySelectorAll('.col-search');
@@ -388,9 +356,7 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         const updatedReqs = data.requisitions.filter(req => !reqIdsToRemove.includes(req.reqId));
-                        // Auto-Archive
-                        const newBucket = updatedReqs.length > 0 ? "active" : "archive";
-                        await updateDoc(docRef, { requisitions: updatedReqs, bucket: newBucket });
+                        await updateDoc(docRef, { requisitions: updatedReqs });
                     }
                 }
                 alert("Deleted.");
@@ -403,7 +369,7 @@
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
                 updateControls();
                 return;
             }
@@ -478,8 +444,7 @@
                     const data = docSnap.data();
                     const updatedReqs = [...data.requisitions];
                     updatedReqs.splice(index, 1);
-                    const newBucket = updatedReqs.length > 0 ? "active" : "archive";
-                    await updateDoc(docRef, { requisitions: updatedReqs, bucket: newBucket });
+                    await updateDoc(docRef, { requisitions: updatedReqs });
                     isDataReady = false;
                     loadInitial();
                 }
@@ -533,10 +498,7 @@
                          newReqData.dateAdded = data.requisitions[index].dateAdded;
                     }
                     updatedReqs[index] = newReqData;
-                    
-                    // Force Bucket Update on Save
-                    await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value, bucket: "active" });
-                    
+                    await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
                     closeModal();
                     isDataReady = false;
                     loadInitial();
@@ -558,15 +520,7 @@
             loadInitial();
         }
 
-        window.resetAll = () => {
-            document.querySelectorAll('.col-search').forEach(i => i.value = "");
-            document.getElementById('searchInput').value = "";
-            document.getElementById('buyerFilter').value = "";
-            isDataReady = false;
-            loadInitial();
-        }
-
-        // Global Bindings
+        // Bind global
         window.filterData = filterData;
         window.toggleSelectAll = toggleSelectAll;
         window.toggleRow = toggleRow;
@@ -579,8 +533,8 @@
         window.resetAll = resetAll;
         window.openDetailModal = openDetailModal;
         window.closeDetailModal = closeDetailModal;
-        window.runOptimization = runOptimization;
 
+        // Force load on start
         document.addEventListener("DOMContentLoaded", () => { isDataReady = false; loadInitial(); });
 
     </script>
