@@ -41,16 +41,9 @@
         tbody tr:hover { background-color: #f1f1f1; }
 
         /* Column Search Inputs */
-        .col-search {
-            width: 90%;
-            padding: 4px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 12px;
-            color: #333;
-        }
+        .col-search { width: 90%; padding: 4px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; color: #333; }
 
+        /* Part Link */
         a.part-link { color: #0056b3; font-weight: bold; text-decoration: underline; cursor: pointer; }
         a.part-link:hover { color: #003366; }
         
@@ -65,7 +58,7 @@
         .btn-nav { padding: 8px 16px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
 
-        /* Modal */
+        /* --- EDIT MODAL (Small) --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 30px; border-radius: 8px; width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-title { margin-top: 0; color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
@@ -73,30 +66,42 @@
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        /* --- DETAIL POPUP IFRAME (Large) --- */
+        .detail-overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; 
+        }
+        .detail-container { 
+            background: white; width: 90%; height: 90%; border-radius: 8px; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column;
+        }
+        .detail-header {
+            padding: 10px 15px; background: #eee; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-close-detail {
+            background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+        .detail-frame { flex: 1; width: 100%; border: none; }
     </style>
 </head>
 <body>
 
     <script>
         window.addEventListener( "pageshow", function ( event ) {
-            var historyTraversal = event.persisted || 
-                                   ( typeof window.performance != "undefined" && 
-                                     window.performance.navigation.type === 2 );
-            if ( historyTraversal ) {
-                // Handle page restore.
-                window.location.reload();
-            }
+            var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
+            if ( historyTraversal ) { window.location.reload(); }
         });
     </script>
 
     <div class="header-container">
         <h2>Rush Procurement Base</h2>
         <div>
-            <a href="quotes.html" class="btn-add btn-grey">🔍 Quote Search</a>
-            <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
-            <a href="batch-req.html" class="btn-add btn-purple">⚡ Batch Req</a>
-            <a href="batch-quotes.html" class="btn-add btn-orange">⚡ Batch Quote</a>
-            <a href="add-quote.html" class="btn-add btn-blue">+ Add Quote</a>
+            <a href="quotes.html" target="_blank" class="btn-add btn-grey">🔍 Quote Search</a>
+            <a href="add-req.html" target="_blank" class="btn-add btn-green">+ Add Req</a>
+            <a href="batch-req.html" target="_blank" class="btn-add btn-purple">⚡ Batch Req</a>
+            <a href="batch-quotes.html" target="_blank" class="btn-add btn-orange">⚡ Batch Quote</a>
+            <a href="add-quote.html" target="_blank" class="btn-add btn-blue">+ Add Quote</a>
         </div>
     </div>
 
@@ -113,8 +118,7 @@
                 <tr>
                     <th style="width: 100px; text-align: center;">
                         <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" style="transform: scale(1.5); cursor: pointer;" title="Select All Filtered">
-                        <br>
-                        <span style="font-size:10px; color:#ddd;">Select All</span>
+                        <br><span style="font-size:10px; color:#ddd;">Select All</span>
                     </th>
                     <th>Actions<br>
                         <button onclick="deleteSelected()" class="btn-red" style="font-size: 11px; padding: 4px 8px; border: none; border-radius: 3px; cursor: pointer; color: white;">🗑️ Delete Selected</button>
@@ -141,55 +145,40 @@
         </table>
     </div>
 
-    <div class="pagination" id="paginationControls">
-        </div>
+    <div class="pagination" id="paginationControls"></div>
 
     <div class="modal-overlay" id="editModal">
         <div class="modal-card">
             <h3 class="modal-title">✏️ Modify Requisition</h3>
             <input type="hidden" id="edit_partNo">
             
-            <div class="form-group">
-                <label>Req ID</label>
-                <input type="text" id="edit_reqId">
-            </div>
+            <div class="form-group"><label>Req ID</label><input type="text" id="edit_reqId"></div>
             <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="width:50%">
-                    <label>Buyer (Initials)</label> 
-                    <input type="text" id="edit_buyer">
-                </div>
-                <div class="form-group" style="width:50%">
-                    <label>Selected (Status)</label> 
-                    <input type="text" id="edit_selected">
-                </div>
+                <div class="form-group" style="width:50%"><label>Buyer (Initials)</label><input type="text" id="edit_buyer"></div>
+                <div class="form-group" style="width:50%"><label>Selected (Status)</label><input type="text" id="edit_selected"></div>
             </div>
-            <div class="form-group">
-                <label>Budget (Unit Price)</label> 
-                <input type="number" id="edit_budget" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Hull / Project</label>
-                <input type="text" id="edit_hull">
-            </div>
+            <div class="form-group"><label>Budget (Unit Price)</label><input type="number" id="edit_budget" step="0.01"></div>
+            <div class="form-group"><label>Hull / Project</label><input type="text" id="edit_hull"></div>
             <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="width:50%">
-                    <label>Qty Required</label>
-                    <input type="number" id="edit_qty">
-                </div>
-                <div class="form-group" style="width:50%">
-                    <label>UOM</label>
-                    <input type="text" id="edit_uom">
-                </div>
+                <div class="form-group" style="width:50%"><label>Qty Required</label><input type="number" id="edit_qty"></div>
+                <div class="form-group" style="width:50%"><label>UOM</label><input type="text" id="edit_uom"></div>
             </div>
-            <div class="form-group">
-                <label>Description (Updates Main Part)</label>
-                <input type="text" id="edit_desc">
-            </div>
+            <div class="form-group"><label>Description (Updates Main Part)</label><input type="text" id="edit_desc"></div>
             
             <div class="modal-actions">
                 <button type="button" onclick="closeModal()" class="btn-add" style="background:#ccc; color:#333;">Cancel</button>
                 <button type="button" onclick="saveEdit()" class="btn-add btn-green">Save Changes</button>
             </div>
+        </div>
+    </div>
+
+    <div class="detail-overlay" id="detailModal">
+        <div class="detail-container">
+            <div class="detail-header">
+                <strong>Part Details</strong>
+                <button onclick="closeDetailModal()" class="btn-close-detail">Close & Refresh</button>
+            </div>
+            <iframe id="detailFrame" class="detail-frame" src=""></iframe>
         </div>
     </div>
 
@@ -209,15 +198,10 @@
 
         // --- COLOR GENERATOR ---
         function getColorForString(str) {
-            if (!str) return '#e9ecef'; // Default gray for empty
+            if (!str) return '#e9ecef';
             let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const colors = [
-                '#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', 
-                '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc', '#ffe5d9'
-            ];
+            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc', '#ffe5d9'];
             const index = Math.abs(hash % colors.length);
             return colors[index];
         }
@@ -225,11 +209,9 @@
         // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
             tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
-            
             try {
                 const q = query(collection(db, "parts"), limit(10000));
                 const querySnapshot = await getDocs(q);
-                
                 flatTableData = [];
 
                 querySnapshot.forEach((doc) => {
@@ -249,12 +231,9 @@
                             const delta = quoteTotal - tBudget; 
 
                             flatTableData.push({
-                                // IDs
-                                id: Math.random().toString(36), // Unique ID for table mapping
+                                id: Math.random().toString(36),
                                 partNo: data.partNo,
                                 realIndex: index,
-                                
-                                // Data
                                 buyer: (req.buyer || "").toString(),
                                 reqId: (req.reqId || "").toString(),
                                 hull: (req.hull || "").toString(),
@@ -270,13 +249,9 @@
                                 selected: (req.selected || "").toString(),
                                 delta: bestQuote ? delta.toFixed(2) : "-",
                                 lead: bestQuote ? (bestQuote.lead || "-") : "-",
-                                
-                                // Logic
                                 rawDelta: delta,
                                 hasQuote: !!bestQuote,
                                 isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
-                                
-                                // Selection State
                                 isSelected: false
                             });
                         });
@@ -295,24 +270,20 @@
             loadInitial();
         }
 
-        // 2. SEARCH FUNCTION (Client-Side)
         window.searchData = async () => {
             const term = document.getElementById('searchInput').value.trim().toUpperCase();
-            
-            // If user searches specific part not in initial load, try fetching it
             if(term && flatTableData.length === 0) {
                  try {
+                    // Try fetch if list empty
                     const q = query(collection(db, "parts"), where("partNo", "==", term));
-                    const snap = await getDocs(q);
-                    // (Logic to push to flatTableData would go here, but reload is safer)
-                    loadInitial(); 
+                    await getDocs(q);
+                    loadInitial(); // Simplest path is reload all
                     return;
                  } catch(err) { console.error(err); }
             }
             filterData();
         }
 
-        // 2. FILTER FUNCTION
         window.filterData = () => {
             const inputs = document.querySelectorAll('.col-search');
             filteredData = flatTableData.filter(row => {
@@ -338,7 +309,6 @@
             renderTable();
         }
 
-        // --- CHECKBOX LOGIC ---
         window.toggleSelectAll = () => {
             const masterCheck = document.getElementById('selectAll');
             const isChecked = masterCheck.checked;
@@ -354,11 +324,9 @@
             }
         }
 
-        // BULK DELETE
         window.deleteSelected = async () => {
             const selectedRows = flatTableData.filter(r => r.isSelected);
             if (selectedRows.length === 0) return alert("No records selected!");
-
             if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected records?`)) return;
 
             const partsToUpdate = {}; 
@@ -371,23 +339,18 @@
                 for (const [partNo, reqIdsToRemove] of Object.entries(partsToUpdate)) {
                     const docRef = doc(db, "parts", partNo);
                     const docSnap = await getDoc(docRef);
-                    
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         const updatedReqs = data.requisitions.filter(req => !reqIdsToRemove.includes(req.reqId));
                         await updateDoc(docRef, { requisitions: updatedReqs });
                     }
                 }
-                
                 alert("Bulk delete complete!");
                 document.getElementById('selectAll').checked = false; 
                 loadInitial(); 
-            } catch (err) {
-                alert("Error during bulk delete: " + err.message);
-            }
+            } catch (err) { alert("Error during bulk delete: " + err.message); }
         }
 
-        // 3. RENDER TABLE
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
@@ -406,7 +369,6 @@
                     if(row.rawDelta > 0) deltaColor = "#d9534f";
                     if(row.rawDelta <= 0) deltaColor = "#28a745";
                 }
-
                 let rankColor = "#ccc";
                 if (row.isBestRank) rankColor = "#28a745";
                 else if (row.rank == '2') rankColor = "#ffc107";
@@ -424,7 +386,7 @@
                             <button class="btn-icon btn-del" onclick="deleteReq('${row.partNo}', ${row.realIndex})" title="Delete Line">🗑️</button>
                         </td>
                         <td><span class="buyer-badge" style="background-color:${buyerColor}">${row.buyer}</span></td>
-                        <td><a href="detail.html?part=${row.partNo}" class="part-link">${row.partNo}</a></td>
+                        <td><a onclick="openDetailModal('${row.partNo}')" class="part-link">${row.partNo}</a></td>
                         <td><span class="req-badge">${row.reqId}</span></td>
                         <td><span class="hull-badge" style="background-color:${hullColor}">${row.hull}</span></td>
                         <td>${row.desc}</td>
@@ -458,7 +420,6 @@
             document.getElementById('btnNext').onclick = () => { if(currentPage < totalPages) { currentPage++; renderTable(); } };
         }
 
-        // --- 4. DELETE LOGIC ---
         window.deleteReq = async (partNo, index) => {
             if(!confirm("Delete this requisition line?")) return;
             try {
@@ -474,13 +435,7 @@
             } catch (err) { alert("Error: " + err.message); }
         }
 
-        // --- 5. EDIT MODAL LOGIC ---
-        let currentEditPart = null;
-        let currentEditIndex = null;
-
         window.openEdit = async (partNo, index) => {
-            currentEditPart = partNo;
-            currentEditIndex = index;
             const docRef = doc(db, "parts", partNo);
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists()) return;
@@ -519,23 +474,34 @@
                         budget: Number(document.getElementById('edit_budget').value),
                         selected: document.getElementById('edit_selected').value,
                         status: "Open",
-                        dateAdded: newReqData && newReqData.dateAdded ? newReqData.dateAdded : new Date().toISOString()
+                        dateAdded: new Date().toISOString()
                     };
                     if(data.requisitions[index] && data.requisitions[index].dateAdded) {
                          newReqData.dateAdded = data.requisitions[index].dateAdded;
                     }
                     updatedReqs[index] = newReqData;
-                    await updateDoc(docRef, { 
-                        requisitions: updatedReqs,
-                        desc: document.getElementById('edit_desc').value
-                    });
+                    await updateDoc(docRef, { requisitions: updatedReqs, desc: document.getElementById('edit_desc').value });
                     closeModal();
                     loadInitial();
                 }
             } catch (err) { alert("Error saving: " + err.message); }
         }
 
-        // Global function binding
+        // --- POPUP DETAIL LOGIC ---
+        window.openDetailModal = (partNo) => {
+            const modal = document.getElementById('detailModal');
+            const frame = document.getElementById('detailFrame');
+            frame.src = `detail.html?part=${partNo}`; // Load detail page in iframe
+            modal.style.display = 'flex';
+        }
+
+        window.closeDetailModal = () => {
+            document.getElementById('detailModal').style.display = 'none';
+            document.getElementById('detailFrame').src = ""; // Clear source
+            loadInitial(); // Refresh main table to capture any edits made in popup
+        }
+
+        // Global Bindings
         window.filterData = filterData;
         window.toggleSelectAll = toggleSelectAll;
         window.toggleRow = toggleRow;
@@ -546,6 +512,8 @@
         window.closeModal = closeModal;
         window.searchData = searchData;
         window.resetAll = resetAll;
+        window.openDetailModal = openDetailModal;
+        window.closeDetailModal = closeDetailModal;
 
         loadInitial();
     </script>
