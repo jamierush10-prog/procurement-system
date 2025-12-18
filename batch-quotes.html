@@ -8,12 +8,12 @@
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
         .drop-zone { 
-            border: 3px dashed #0056b3; padding: 40px; background: #e8f4ff; 
+            border: 3px dashed #fd7e14; padding: 40px; background: #fff5eb; 
             margin: 20px 0; border-radius: 10px; cursor: pointer; transition: 0.3s;
         }
-        .drop-zone:hover { background: #d0e8ff; border-color: #004494; }
+        .drop-zone:hover { background: #ffe8cc; border-color: #e87612; }
         
-        h2 { color: #0056b3; }
+        h2 { color: #fd7e14; }
         .back-link { display: block; margin-top: 20px; color: #666; text-decoration: none; }
         
         /* Logs */
@@ -35,9 +35,9 @@
         <p>Upload an Excel file with these exact columns:</p>
         <div style="line-height: 2em; margin-bottom: 20px;">
             <span class="code-snippet">PartNo</span>
-            <span class="code-snippet">Supplier</span>
+            <span class="code-snippet">Description</span> <span class="code-snippet">Supplier</span>
             <span class="code-snippet">Price</span>
-            <span class="code-snippet">Qty</span>
+            <span class="code-snippet">QuoteDate</span> <span class="code-snippet">Qty</span>
             <span class="code-snippet">LeadTime</span>
             <span class="code-snippet">Validity</span>
             <span class="code-snippet">Notes</span>
@@ -66,7 +66,7 @@
 
         // Drag & Drop Handlers
         dropZone.onclick = () => fileInput.click();
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = '#d0e8ff'; };
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.background = '#ffe8cc'; };
         dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
         fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
@@ -102,6 +102,14 @@
 
                         const partNo = row.PartNo.toString().toUpperCase().trim();
                         
+                        // Handle Date (Excel dates can be tricky, so we check for text string first)
+                        // If QuoteDate is missing, we default to Today (YYYY-MM-DD)
+                        let qDate = new Date().toLocaleDateString('en-CA');
+                        if (row.QuoteDate) {
+                            // If user types '2023-05-20', utilize it. 
+                            qDate = row.QuoteDate.toString().trim();
+                        }
+
                         // Prepare the Quote Object
                         const quoteItem = {
                             supplier: row.Supplier.toString(),
@@ -112,8 +120,8 @@
                             notes: row.Notes ? row.Notes.toString() : "",
                             mfg: row.MFG ? row.MFG.toString() : "",
                             file: row.QuoteFile ? row.QuoteFile.toString() : "",
-                            rank: 999, // Default to "No Rank"
-                            date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
+                            rank: 999,
+                            date: qDate, // Uses Excel column or Today
                             timestamp: new Date().toISOString()
                         };
 
@@ -123,19 +131,25 @@
 
                         if (docSnap.exists()) {
                             // Part Exists: Append Quote
-                            await updateDoc(docRef, {
+                            const updates = {
                                 quotes: arrayUnion(quoteItem)
-                            });
+                            };
+                            // Optional: Update Description if provided in Excel
+                            if (row.Description) {
+                                updates.desc = row.Description.toString();
+                            }
+
+                            await updateDoc(docRef, updates);
                             log(`[${partNo}] Added Quote from ${quoteItem.supplier}`);
                         } else {
                             // New Part: Create Shell + Quote
                             await setDoc(docRef, {
                                 partNo: partNo,
-                                desc: "Created via Batch Quote Upload",
+                                desc: row.Description ? row.Description.toString() : "Imported Part",
                                 requisitions: [],
                                 quotes: [quoteItem] 
                             });
-                            log(`[${partNo}] Created New Part + Quote from ${quoteItem.supplier}`);
+                            log(`[${partNo}] Created New Part + Quote`);
                         }
                         count++;
                     }
