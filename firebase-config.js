@@ -1,23 +1,44 @@
-// 1. IMPORT FROM WEB (CDN) LINKS
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// Added 'deleteDoc' to the list below
-import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, arrayUnion, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// firebase-config.js
+import { initializeApp } from "firebase/app";
 
-// 2. YOUR CONFIGURATION
+// Firestore (what quotes.html needs)
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  limit,
+  orderBy,
+  startAfter,
+  where,
+} from "firebase/firestore";
+
+// Analytics (optional)
+import { getAnalytics, isSupported } from "firebase/analytics";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyCXetXeuaWJRg3PM7vXJZnRuJDfq8ldT1Tc",
+  apiKey: "AIzaSyCEtXeuaWJRg3PM7vXJZnRuJDfq8ldT1Tc",
   authDomain: "procurement-app-869b8.firebaseapp.com",
   projectId: "procurement-app-869b8",
-  storageBucket: "procurement-app-869b8.appspot.com", 
+  storageBucket: "procurement-app-869b8.firebasestorage.app",
   messagingSenderId: "546192883144",
   appId: "1:546192883144:web:2880e96220e96c3ea694fd",
-  measurementId: "G-CDXJC4VQ0Q"
+  measurementId: "G-CDXJC4VQ0Q",
 };
 
-// 3. INITIALIZE FIREBASE & DATABASE
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
 
-// 4. EXPORT TOOLS
-// Added 'deleteDoc' here too
-export { db, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, arrayUnion, getDoc, getDocs, query, where, limit };
+// Analytics can fail on file:// or unsupported envs — keep it from breaking your app.
+export let analytics = null;
+(async () => {
+  try {
+    if (await isSupported()) analytics = getAnalytics(app);
+  } catch {
+    analytics = null;
+  }
+})();
+
+// Re-export helpers so your quotes.html can do:
+// import { db, collection, getDocs, query, limit, orderBy, startAfter, where } from './firebase-config.js';
+export { collection, getDocs, query, limit, orderBy, startAfter, where };

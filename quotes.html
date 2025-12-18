@@ -1,261 +1,447 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quote History Search</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
-        
-        /* Header */
-        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 3px solid #6f42c1; padding-bottom: 10px; }
-        h2 { color: #6f42c1; margin: 0; display: flex; align-items: center; }
-        
-        /* Buttons */
-        .btn-red { 
-            padding: 8px 16px; background-color: #dc3545; color: white; text-decoration: none; 
-            border-radius: 4px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; 
-        }
-        .btn-red:hover { background-color: #c82333; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quote History Search</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
 
-        /* Table */
-        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
-        table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 13px; }
-        thead th { position: sticky; top: 0; background-color: #6f42c1; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
-        tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
-        tbody tr:hover { background-color: #f1f1f1; }
+    /* Header */
+    .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 3px solid #6f42c1; padding-bottom: 10px; }
+    h2 { color: #6f42c1; margin: 0; display: flex; align-items: center; }
 
-        /* Inputs */
-        .col-search { width: 90%; padding: 4px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; color: #333; }
-        .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
+    /* Buttons */
+    .btn-red {
+      padding: 8px 16px; background-color: #dc3545; color: white; text-decoration: none;
+      border-radius: 4px; font-weight: bold; font-size: 14px; border: none; cursor: pointer;
+    }
+    .btn-red:hover { background-color: #c82333; }
 
-        /* Badges */
-        .rank-badge { padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.9em; }
-        
-        /* Pagination */
-        .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
-        .btn-nav { padding: 8px 16px; background-color: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
+    /* Status Bar */
+    #statusBar {
+      background: #e2e3e5; color: #383d41; padding: 10px; margin-bottom: 15px;
+      border-radius: 4px; border: 1px solid #d6d8db; font-size: 13px; font-family: monospace; display:block;
+    }
 
-        /* Status Bar */
-        #statusBar { 
-            background: #e2e3e5; color: #383d41; padding: 10px; margin-bottom: 15px; 
-            border-radius: 4px; border: 1px solid #d6d8db; font-size: 13px; font-family: monospace; display:block;
-        }
-    </style>
+    /* Quick Search */
+    .search-panel {
+      background: #ffffff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .search-row label { font-size: 12px; color: #555; font-weight: 700; }
+    .search-row input[type="text"], .search-row select {
+      padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; color: #333;
+    }
+    .search-row input[type="text"] { width: 340px; max-width: 100%; }
+    .help {
+      margin-top: 8px; font-size: 12px; color: #666; line-height: 1.3;
+    }
+    .btn-nav {
+      padding: 8px 16px; background-color: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
+    .btn-lite {
+      padding: 8px 16px; background-color: #ffffff; color: #6f42c1; border: 1px solid #6f42c1; border-radius: 4px; cursor: pointer;
+      font-weight: 700;
+    }
+    .btn-lite:hover { background-color: #f3ecff; }
+
+    /* Table */
+    .table-container { width: 100%; overflow-x: auto; background: white; padding: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { position: sticky; top: 0; background-color: #6f42c1; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
+    tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
+    tbody tr:hover { background-color: #f1f1f1; }
+
+    /* Inputs */
+    .col-search { width: 90%; padding: 4px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; color: #333; }
+    .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
+
+    /* Badges */
+    .rank-badge { padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.9em; }
+
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
+  </style>
 </head>
+
 <body>
+  <div class="header-container">
+    <h2>🔍 Quote History Search</h2>
+    <a href="index.html" class="btn-red">Close & Refresh</a>
+  </div>
 
-    <div class="header-container">
-        <h2>🔍 Quote History Search</h2>
-        <a href="index.html" class="btn-red">Close & Refresh</a>
+  <div id="statusBar">Initializing...</div>
+
+  <!-- SEARCH-FIRST PANEL (NO FULL SCAN) -->
+  <div class="search-panel">
+    <div class="search-row">
+      <label for="searchKey">Quick Search</label>
+      <input id="searchKey" type="text" placeholder="Enter Part No or NSN (exact match)..." />
+      <select id="searchMode" title="Search Mode">
+        <option value="partOrNsn">Part No OR NSN</option>
+        <option value="partNo">Part No only</option>
+        <option value="nsn">NSN only</option>
+      </select>
+      <button class="btn-nav" onclick="runSearch()">Search</button>
+      <button class="btn-lite" onclick="clearQuickSearch()">Clear</button>
+      <button class="btn-lite" onclick="clearColumnFilters()">Clear Filters</button>
+      <button class="btn-lite" onclick="loadAllQuotes()">Load All (Slow)</button>
     </div>
-
-    <div id="statusBar">Initializing...</div>
-
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:120px;">Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th style="min-width:200px;">Description<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>SPMIG<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>NSN<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Supplier<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Quote Date<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Price<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>MFG Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Quote File<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Qty<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                    <th>Lead Time<br><input type="text" class="col-search" onkeyup="filterData()"></th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+    <div class="help">
+      • This page is now <b>search-first</b> to avoid scanning your entire database.<br/>
+      • Use exact match for speed (Part No / NSN). After results load, use the purple column filters to narrow further.<br/>
+      • “Load All (Slow)” is only for rare situations (it will scan the whole collection).
     </div>
+  </div>
 
-    <div class="pagination" id="paginationControls"></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px;">Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th style="min-width:200px;">Description<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>SPMIG<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>NSN<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Supplier<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Quote Date<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Price<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>MFG Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Quote File<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Qty<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+          <th>Lead Time<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
-    <script type="module">
-        import { db, collection, getDocs, query, limit, orderBy, startAfter } from './firebase-config.js';
+  <div class="pagination" id="paginationControls"></div>
 
-        // Auth Check
-        if (!sessionStorage.getItem("austal_user") && !localStorage.getItem("austal_user")) {
-            window.location.href = "login.html";
+  <script type="module">
+    // IMPORTANT:
+    // This file expects your ./firebase-config.js to export Firestore helpers the same way your old file did.
+    // You MUST export `where` from firebase-config.js for quick search to work.
+    import { db, collection, getDocs, query, limit, orderBy, startAfter, where } from './firebase-config.js';
+
+    // Auth Check
+    if (!sessionStorage.getItem("austal_user") && !localStorage.getItem("austal_user")) {
+      window.location.href = "login.html";
+    }
+
+    const tbody = document.getElementById('tableBody');
+    const statusDiv = document.getElementById('statusBar');
+    const paginationDiv = document.getElementById('paginationControls');
+    const searchKeyEl = document.getElementById('searchKey');
+    const searchModeEl = document.getElementById('searchMode');
+
+    let flatData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const itemsPerPage = 100;
+
+    const COLS = 12;
+
+    const s = (v) => (v === null || v === undefined) ? "" : String(v);
+    const upper = (v) => s(v).toUpperCase();
+
+    function setTableMessage(msg) {
+      tbody.innerHTML = `<tr><td colspan='${COLS}' style='text-align:center; padding:20px;'>${msg}</td></tr>`;
+      paginationDiv.innerHTML = "";
+    }
+
+    function resetData() {
+      flatData = [];
+      filteredData = [];
+      currentPage = 1;
+    }
+
+    function clearInputs(selector) {
+      document.querySelectorAll(selector).forEach(el => { el.value = ""; });
+    }
+
+    // ---------- SEARCH-FIRST (NO FULL SCAN) ----------
+    window.runSearch = async () => {
+      const key = s(searchKeyEl.value).trim();
+      if (!key) {
+        statusDiv.textContent = "Enter a Part No or NSN (exact match), then click Search.";
+        setTableMessage("Ready.");
+        return;
+      }
+
+      resetData();
+      statusDiv.style.color = "#383d41";
+      statusDiv.style.fontWeight = "normal";
+      statusDiv.textContent = `Searching for "${key}"...`;
+      setTableMessage("Searching...");
+
+      const mode = s(searchModeEl.value);
+      const partsRef = collection(db, "parts");
+
+      try {
+        const snaps = [];
+
+        if (mode === "partNo") {
+          snaps.push(await getDocs(query(partsRef, where("partNo", "==", key), limit(50))));
+        } else if (mode === "nsn") {
+          snaps.push(await getDocs(query(partsRef, where("nsn", "==", key), limit(50))));
+        } else {
+          // Part No OR NSN -> two queries + merge unique doc ids
+          const [snapPart, snapNsn] = await Promise.all([
+            getDocs(query(partsRef, where("partNo", "==", key), limit(50))),
+            getDocs(query(partsRef, where("nsn", "==", key), limit(50))),
+          ]);
+          snaps.push(snapPart, snapNsn);
         }
 
-        const tbody = document.getElementById('tableBody');
-        const statusDiv = document.getElementById('statusBar');
-        const paginationDiv = document.getElementById('paginationControls');
+        const docMap = new Map();
+        for (const snap of snaps) {
+          snap.forEach(d => { if (!docMap.has(d.id)) docMap.set(d.id, d); });
+        }
 
-        let flatData = [];
-        let filteredData = [];
-        let currentPage = 1;
-        const itemsPerPage = 100;
+        const docs = Array.from(docMap.values());
+        let partDocs = 0;
 
-        // 1. AUTO-RUN CHUNKED LOADER
-        window.loadQuotes = async () => {
-            statusDiv.textContent = "Connecting to database...";
-            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Loading records...</td></tr>";
+        docs.forEach(doc => {
+          partDocs++;
+          const data = doc.data();
 
-            flatData = [];
-            const CHUNK_SIZE = 2000; // Smaller chunks are safer
-            let lastDoc = null;
-            let keepScanning = true;
-            let totalScanned = 0;
+          const partNo = s(data.partNo);
+          const desc   = s(data.desc);
+          const spmig  = s(data.spmig);
+          const nsn    = s(data.nsn);
 
-            try {
-                // Loop until no more data
-                while (keepScanning) {
-                    let q;
-                    // Construct Query
-                    if (lastDoc) {
-                        q = query(collection(db, "parts"), orderBy("partNo"), startAfter(lastDoc), limit(CHUNK_SIZE));
-                    } else {
-                        q = query(collection(db, "parts"), orderBy("partNo"), limit(CHUNK_SIZE));
-                    }
-
-                    // Execute
-                    const snapshot = await getDocs(q);
-
-                    // Check if done
-                    if (snapshot.empty) {
-                        keepScanning = false;
-                        break;
-                    }
-
-                    // Process Data
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        
-                        // Add rows for every quote found
-                        if (data.quotes && data.quotes.length > 0) {
-                            data.quotes.forEach(quote => {
-                                flatData.push({
-                                    partNo: data.partNo || "",
-                                    desc: data.desc || "",
-                                    spmig: data.spmig || "", 
-                                    nsn: data.nsn || "",     
-                                    supplier: quote.supplier || "",
-                                    rank: (quote.rank || 999).toString(),
-                                    date: quote.date || "",
-                                    price: quote.price ? parseFloat(quote.price).toFixed(2) : "0.00",
-                                    mfg: quote.mfg || "",
-                                    file: quote.file || "",
-                                    qty: (quote.qty || 1).toString(),
-                                    lead: quote.lead || ""
-                                });
-                            });
-                        }
-                    });
-
-                    // Update Status & Table
-                    totalScanned += snapshot.size;
-                    statusDiv.textContent = `Loading... Scanned ${totalScanned} records. Found ${flatData.length} quotes.`;
-                    filterData(); // Update screen immediately
-
-                    // Set cursor for next loop
-                    lastDoc = snapshot.docs[snapshot.docs.length - 1];
-                    
-                    // Safety break (30k max)
-                    if (totalScanned > 30000) keepScanning = false; 
-                }
-
-                statusDiv.textContent = `Done. Loaded ${flatData.length} quotes.`;
-                statusDiv.style.color = "green";
-                statusDiv.style.fontWeight = "bold";
-
-            } catch (err) {
-                console.error(err);
-                statusDiv.textContent = "Error: " + err.message;
-                statusDiv.style.color = "red";
-            }
-        };
-
-        // 2. FILTER LOGIC
-        window.filterData = () => {
-            const inputs = document.querySelectorAll('.col-search');
-            
-            filteredData = flatData.filter(row => {
-                if (!row.partNo.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
-                if (!row.desc.toUpperCase().includes(inputs[1].value.toUpperCase())) return false;
-                if (!row.spmig.toUpperCase().includes(inputs[2].value.toUpperCase())) return false;
-                if (!row.nsn.toUpperCase().includes(inputs[3].value.toUpperCase())) return false;
-                if (!row.supplier.toUpperCase().includes(inputs[4].value.toUpperCase())) return false;
-                if (!row.rank.includes(inputs[5].value)) return false;
-                if (!row.date.includes(inputs[6].value)) return false;
-                if (!row.price.includes(inputs[7].value)) return false;
-                if (!row.mfg.toUpperCase().includes(inputs[8].value.toUpperCase())) return false;
-                if (!row.file.toUpperCase().includes(inputs[9].value.toUpperCase())) return false;
-                if (!row.qty.includes(inputs[10].value)) return false;
-                if (!row.lead.toUpperCase().includes(inputs[11].value.toUpperCase())) return false;
-                return true;
+          const quotes = Array.isArray(data.quotes) ? data.quotes : [];
+          quotes.forEach(qt => {
+            flatData.push({
+              partNo,
+              desc,
+              spmig,
+              nsn,
+              supplier: s(qt.supplier),
+              rank: s(qt.rank || 999),
+              date: s(qt.date),
+              price: (() => {
+                const n = Number(qt.price);
+                return Number.isFinite(n) ? n.toFixed(2) : s(qt.price || "0.00");
+              })(),
+              mfg: s(qt.mfg),
+              file: s(qt.file),
+              qty: s(qt.qty || 1),
+              lead: s(qt.lead),
             });
+          });
+        });
 
-            // If user typing, stay on page 1
-            if(document.activeElement.tagName === "INPUT") currentPage = 1;
-            
-            renderTable();
-        };
+        if (partDocs === 0 || flatData.length === 0) {
+          statusDiv.textContent = `No quotes found for "${key}". (No matching parts or no quotes on those parts.)`;
+          setTableMessage("No quotes found.");
+          return;
+        }
 
-        // 3. RENDER TABLE
-        function renderTable() {
-            tbody.innerHTML = "";
-            if (filteredData.length === 0) {
-                const msg = flatData.length === 0 ? "Loading records..." : "No quotes found.";
-                tbody.innerHTML = `<tr><td colspan='12' style='text-align:center; padding:20px;'>${msg}</td></tr>`;
-                updateControls();
-                return;
+        statusDiv.textContent = `Found ${flatData.length} quotes across ${partDocs} matching part record(s) for "${key}".`;
+        filterData(); // applies column filters + renders
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = "Error: " + err.message;
+        statusDiv.style.color = "red";
+        setTableMessage("Error loading quotes.");
+      }
+    };
+
+    window.clearQuickSearch = () => {
+      searchKeyEl.value = "";
+      statusDiv.textContent = "Ready. Enter a Part No or NSN and click Search.";
+      resetData();
+      setTableMessage("Ready.");
+    };
+
+    window.clearColumnFilters = () => {
+      clearInputs(".col-search");
+      filterData();
+    };
+
+    // ---------- OPTIONAL: LOAD ALL (SLOW FULL SCAN) ----------
+    window.loadAllQuotes = async () => {
+      const ok = confirm("Load ALL quotes by scanning the entire database?\n\nThis is SLOW and costs reads.\n\nClick OK to continue.");
+      if (!ok) return;
+
+      statusDiv.style.color = "#383d41";
+      statusDiv.style.fontWeight = "normal";
+      statusDiv.textContent = "Connecting to database...";
+      setTableMessage("Loading records...");
+
+      resetData();
+
+      const CHUNK_SIZE = 2000;
+      let lastDoc = null;
+      let keepScanning = true;
+      let totalScanned = 0;
+
+      try {
+        while (keepScanning) {
+          let q;
+          if (lastDoc) {
+            q = query(collection(db, "parts"), orderBy("partNo"), startAfter(lastDoc), limit(CHUNK_SIZE));
+          } else {
+            q = query(collection(db, "parts"), orderBy("partNo"), limit(CHUNK_SIZE));
+          }
+
+          const snapshot = await getDocs(q);
+          if (snapshot.empty) break;
+
+          snapshot.forEach(doc => {
+            const data = doc.data();
+
+            if (Array.isArray(data.quotes) && data.quotes.length > 0) {
+              data.quotes.forEach(quote => {
+                flatData.push({
+                  partNo: s(data.partNo),
+                  desc: s(data.desc),
+                  spmig: s(data.spmig),
+                  nsn: s(data.nsn),
+                  supplier: s(quote.supplier),
+                  rank: s(quote.rank || 999),
+                  date: s(quote.date),
+                  price: (() => {
+                    const n = Number(quote.price);
+                    return Number.isFinite(n) ? n.toFixed(2) : s(quote.price || "0.00");
+                  })(),
+                  mfg: s(quote.mfg),
+                  file: s(quote.file),
+                  qty: s(quote.qty || 1),
+                  lead: s(quote.lead),
+                });
+              });
             }
+          });
 
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const pageData = filteredData.slice(startIndex, endIndex);
+          totalScanned += snapshot.size;
+          statusDiv.textContent = `Loading... scanned ${totalScanned} part records. Found ${flatData.length} quotes.`;
 
-            pageData.forEach(row => {
-                let rankColor = "#ccc";
-                if(row.rank === '1') rankColor = "#28a745";
-                if(row.rank === '2') rankColor = "#ffc107";
+          lastDoc = snapshot.docs[snapshot.docs.length - 1];
 
-                const tr = `
-                    <tr>
-                        <td style="font-weight:bold; color:#6f42c1;">${row.partNo}</td>
-                        <td>${row.desc}</td>
-                        <td>${row.spmig}</td>
-                        <td>${row.nsn}</td>
-                        <td>${row.supplier}</td>
-                        <td><span class="rank-badge" style="background:${rankColor}">${row.rank}</span></td>
-                        <td>${row.date}</td>
-                        <td class="col-currency">$${row.price}</td>
-                        <td>${row.mfg}</td>
-                        <td>${row.file}</td>
-                        <td>${row.qty}</td>
-                        <td>${row.lead}</td>
-                    </tr>
-                `;
-                tbody.innerHTML += tr;
-            });
-            updateControls();
+          // NOTE: no silent safety break; if you want a cap, make it explicit.
         }
 
-        function updateControls() {
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            paginationDiv.innerHTML = `
-                <button onclick="prevPage()" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
-                <span style="font-weight:bold; margin: 0 15px;">Page ${currentPage} of ${totalPages} (${filteredData.length} records)</span>
-                <button onclick="nextPage()" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
-            `;
+        if (flatData.length === 0) {
+          statusDiv.textContent = "Scan complete. No quotes found.";
+          setTableMessage("No quotes found.");
+          return;
         }
 
-        // Global functions
-        window.filterData = filterData;
-        window.prevPage = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
-        window.nextPage = () => { if(currentPage < Math.ceil(filteredData.length/itemsPerPage)) { currentPage++; renderTable(); } };
+        statusDiv.textContent = `Done. Loaded ${flatData.length} quotes. Use column filters to narrow.`;
+        statusDiv.style.color = "green";
+        statusDiv.style.fontWeight = "bold";
 
-        // Start immediately
-        document.addEventListener("DOMContentLoaded", loadQuotes);
+        filterData();
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = "Error: " + err.message;
+        statusDiv.style.color = "red";
+        setTableMessage("Error loading quotes.");
+      }
+    };
 
-    </script>
+    // ---------- FILTERING ----------
+    window.filterData = () => {
+      const inputs = document.querySelectorAll('.col-search');
+
+      filteredData = flatData.filter(row => {
+        if (!upper(row.partNo).includes(upper(inputs[0].value))) return false;
+        if (!upper(row.desc).includes(upper(inputs[1].value))) return false;
+        if (!upper(row.spmig).includes(upper(inputs[2].value))) return false;
+        if (!upper(row.nsn).includes(upper(inputs[3].value))) return false;
+        if (!upper(row.supplier).includes(upper(inputs[4].value))) return false;
+        if (!s(row.rank).includes(s(inputs[5].value))) return false;
+        if (!s(row.date).includes(s(inputs[6].value))) return false;
+        if (!s(row.price).includes(s(inputs[7].value))) return false;
+        if (!upper(row.mfg).includes(upper(inputs[8].value))) return false;
+        if (!upper(row.file).includes(upper(inputs[9].value))) return false;
+        if (!s(row.qty).includes(s(inputs[10].value))) return false;
+        if (!upper(row.lead).includes(upper(inputs[11].value))) return false;
+        return true;
+      });
+
+      if (document.activeElement && document.activeElement.tagName === "INPUT") currentPage = 1;
+      renderTable();
+    };
+
+    // ---------- RENDERING ----------
+    function renderTable() {
+      tbody.innerHTML = "";
+
+      if (filteredData.length === 0) {
+        const msg = flatData.length === 0 ? "Ready. Use Quick Search above." : "No quotes found (after filters).";
+        setTableMessage(msg);
+        updateControls();
+        return;
+      }
+
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const pageData = filteredData.slice(startIndex, endIndex);
+
+      let html = "";
+      for (const row of pageData) {
+        let rankColor = "#ccc";
+        if (s(row.rank) === "1") rankColor = "#28a745";
+        if (s(row.rank) === "2") rankColor = "#ffc107";
+
+        html += `
+          <tr>
+            <td style="font-weight:bold; color:#6f42c1;">${s(row.partNo)}</td>
+            <td>${s(row.desc)}</td>
+            <td>${s(row.spmig)}</td>
+            <td>${s(row.nsn)}</td>
+            <td>${s(row.supplier)}</td>
+            <td><span class="rank-badge" style="background:${rankColor}">${s(row.rank)}</span></td>
+            <td>${s(row.date)}</td>
+            <td class="col-currency">$${s(row.price)}</td>
+            <td>${s(row.mfg)}</td>
+            <td>${s(row.file)}</td>
+            <td>${s(row.qty)}</td>
+            <td>${s(row.lead)}</td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+
+      updateControls();
+    }
+
+    function updateControls() {
+      const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+
+      paginationDiv.innerHTML = `
+        <button onclick="prevPage()" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
+        <span style="font-weight:bold; margin: 0 15px;">Page ${currentPage} of ${totalPages} (${filteredData.length} records)</span>
+        <button onclick="nextPage()" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
+      `;
+    }
+
+    window.prevPage = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+    window.nextPage = () => {
+      const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+      if (currentPage < totalPages) { currentPage++; renderTable(); }
+    };
+
+    // ---------- STARTUP ----------
+    document.addEventListener("DOMContentLoaded", () => {
+      statusDiv.textContent = "Ready. Enter a Part No or NSN and click Search (no full scan).";
+      setTableMessage("Ready.");
+
+      // Press Enter to search
+      searchKeyEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          window.runSearch();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
