@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
         
-        /* Header & Layout */
+        /* Header Layout */
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h2 { color: #0056b3; margin: 0; }
         
@@ -130,9 +130,9 @@
                 <div class="form-group" style="width:50%"><label>Selected (Status)</label><input type="text" id="edit_selected"></div>
             </div>
             <div class="form-group"><label>Budget (Unit Price)</label><input type="number" id="edit_budget" step="0.01"></div>
-            <div class="form-group"><label>Hull / Project</label><input type="text" id="edit_hull"></div>
+            <div class="form-group"><label>Hull</label><input type="text" id="edit_hull"></div>
             <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="width:50%"><label>Qty Required</label><input type="number" id="edit_qty"></div>
+                <div class="form-group" style="width:50%"><label>Qty</label><input type="number" id="edit_qty"></div>
                 <div class="form-group" style="width:50%"><label>UOM</label><input type="text" id="edit_uom"></div>
             </div>
             <div class="form-group"><label>Description</label><input type="text" id="edit_desc"></div>
@@ -156,7 +156,9 @@
     <script type="module">
         import { db, collection, getDocs, getDoc, doc, updateDoc, query, where, limit } from './firebase-config.js';
 
-        if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
+        // --- AUTH CHECK: Updated to check LOCAL STORAGE ---
+        const user = localStorage.getItem("austal_user") || sessionStorage.getItem("austal_user");
+        if (!user) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
         const statusDiv = document.getElementById('statusBar');
@@ -362,9 +364,10 @@
 
             pageData.forEach(row => {
                 let deltaColor = "#333";
-                if(row.hasQuote && row.rawDelta > 0) deltaColor = "#d9534f";
-                if(row.hasQuote && row.rawDelta <= 0) deltaColor = "#28a745";
-                
+                if(row.hasQuote) {
+                    if(row.rawDelta > 0) deltaColor = "#d9534f";
+                    if(row.rawDelta <= 0) deltaColor = "#28a745";
+                }
                 let rankColor = "#ccc";
                 if (row.isBestRank) rankColor = "#28a745";
                 else if (row.rank == '2') rankColor = "#ffc107";
@@ -416,15 +419,17 @@
 
         window.deleteReq = async (partNo, index) => {
             if(!confirm("Delete?")) return;
-            const docRef = doc(db, "parts", partNo);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                const updatedReqs = [...data.requisitions];
-                updatedReqs.splice(index, 1);
-                await updateDoc(docRef, { requisitions: updatedReqs });
-                isDataReady = false; loadInitial();
-            }
+            try {
+                const docRef = doc(db, "parts", partNo);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const updatedReqs = [...data.requisitions];
+                    updatedReqs.splice(index, 1);
+                    await updateDoc(docRef, { requisitions: updatedReqs });
+                    isDataReady = false; loadInitial();
+                }
+            } catch (err) { alert("Error: " + err.message); }
         }
 
         window.saveEdit = async () => {
@@ -433,6 +438,7 @@
             const docSnap = await getDoc(docRef);
             const data = docSnap.data();
             let updatedReqs = [...data.requisitions];
+            // ... (Same save logic as before, simplified for brevity)
             const newReqData = {
                 reqId: document.getElementById('edit_reqId').value,
                 buyer: document.getElementById('edit_buyer').value,
