@@ -301,8 +301,8 @@
         }
 
         window.saveQuickRank = async () => {
-            const index = document.getElementById('qr_index').value;
-            const newRank = document.getElementById('qr_select').value;
+            const index = Number(document.getElementById('qr_index').value);
+            const newRank = Number(document.getElementById('qr_select').value);
             
             try {
                 const docRef = doc(db, "parts", currentPartNo);
@@ -310,7 +310,18 @@
                 const data = docSnap.data();
                 const updatedQuotes = [...data.quotes];
                 
-                updatedQuotes[index].rank = Number(newRank); // Update just the rank
+                // --- SINGLE #1 LOGIC ---
+                // If setting new rank to 1, find existing 1 and move to 3
+                if (newRank === 1) {
+                    updatedQuotes.forEach((q, i) => {
+                        if (q.rank === 1 && i !== index) {
+                            q.rank = 3; // Demote old winner
+                        }
+                    });
+                }
+                // -----------------------
+
+                updatedQuotes[index].rank = newRank; // Update current
                 
                 await updateDoc(docRef, { quotes: updatedQuotes });
                 document.getElementById('quickRankModal').style.display = 'none';
@@ -339,16 +350,28 @@
         }
 
         window.saveQuoteEdit = async () => {
-            const index = document.getElementById('eq_index').value;
+            const index = Number(document.getElementById('eq_index').value);
+            const newRank = Number(document.getElementById('eq_rank').value);
+
             try {
                 const docRef = doc(db, "parts", currentPartNo);
                 const docSnap = await getDoc(docRef);
                 const updatedQuotes = [...docSnap.data().quotes];
 
+                // --- SINGLE #1 LOGIC ---
+                if (newRank === 1) {
+                    updatedQuotes.forEach((q, i) => {
+                        if (q.rank === 1 && i !== index) {
+                            q.rank = 3; // Demote old winner
+                        }
+                    });
+                }
+                // -----------------------
+
                 updatedQuotes[index] = {
                     ...updatedQuotes[index],
                     supplier: document.getElementById('eq_supplier').value,
-                    rank: Number(document.getElementById('eq_rank').value),
+                    rank: newRank,
                     mfg: document.getElementById('eq_mfg').value,
                     file: document.getElementById('eq_file').value,
                     price: Number(document.getElementById('eq_price').value),
