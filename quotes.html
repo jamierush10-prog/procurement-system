@@ -12,14 +12,11 @@
         h2 { color: #6f42c1; margin: 0; display: flex; align-items: center; }
         
         /* Buttons */
-        .btn-red { padding: 8px 16px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; }
-        .btn-red:hover { background-color: #c82333; }
-        
-        .btn-search-main { 
-            padding: 10px 25px; background-color: #0056b3; color: white; border: none; border-radius: 4px; 
-            font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        .btn-red { 
+            padding: 8px 16px; background-color: #dc3545; color: white; text-decoration: none; 
+            border-radius: 4px; font-weight: bold; font-size: 14px; border: none; cursor: pointer; 
         }
-        .btn-search-main:hover { background-color: #004494; }
+        .btn-red:hover { background-color: #c82333; }
 
         /* Table */
         .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
@@ -43,50 +40,45 @@
         /* Status Bar */
         #statusBar { 
             background: #e2e3e5; color: #383d41; padding: 10px; margin-bottom: 15px; 
-            border-radius: 4px; border: 1px solid #d6d8db; font-size: 13px; font-family: monospace; display:none;
+            border-radius: 4px; border: 1px solid #d6d8db; font-size: 13px; font-family: monospace; display:block;
         }
     </style>
 </head>
 <body>
 
     <div class="header-container">
-        <div style="display:flex; align-items:center; gap: 20px;">
-            <h2>🔍 Quote History Search</h2>
-            <button onclick="executeSearch()" class="btn-search-main">🔍 Run Search</button>
-        </div>
+        <h2>🔍 Quote History Search</h2>
         <a href="index.html" class="btn-red">Close & Refresh</a>
     </div>
 
-    <div id="statusBar"></div>
+    <div id="statusBar">Initializing...</div>
 
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th style="width:120px;">Part No<br><input type="text" id="s_part" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th style="min-width:200px;">Description<br><input type="text" id="s_desc" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>SPMIG<br><input type="text" id="s_spmig" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>NSN<br><input type="text" id="s_nsn" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Supplier<br><input type="text" id="s_supplier" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Rank<br><input type="text" id="s_rank" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Quote Date<br><input type="text" id="s_date" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Price<br><input type="text" id="s_price" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>MFG Part No<br><input type="text" id="s_mfg" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Quote File<br><input type="text" id="s_file" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Qty<br><input type="text" id="s_qty" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
-                    <th>Lead Time<br><input type="text" id="s_lead" class="col-search" placeholder="Type..." onkeyup="if(event.key==='Enter') executeSearch()"></th>
+                    <th style="width:120px;">Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th style="min-width:200px;">Description<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>SPMIG<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>NSN<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Supplier<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Quote Date<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Price<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>MFG Part No<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Quote File<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Qty<br><input type="text" class="col-search" onkeyup="filterData()"></th>
+                    <th>Lead Time<br><input type="text" class="col-search" onkeyup="filterData()"></th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                <tr><td colspan="12" style="text-align:center; padding:30px; color:#666;">Enter criteria above and click <b>Run Search</b> to find records.</td></tr>
-            </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
     <div class="pagination" id="paginationControls"></div>
 
     <script type="module">
-        import { db, collection, getDocs, query, where, orderBy, limit, startAt, endAt } from './firebase-config.js';
+        import { db, collection, getDocs, query, limit, orderBy, startAfter } from './firebase-config.js';
 
         // Auth Check
         if (!sessionStorage.getItem("austal_user") && !localStorage.getItem("austal_user")) {
@@ -98,107 +90,128 @@
         const paginationDiv = document.getElementById('paginationControls');
 
         let flatData = [];
+        let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 100;
 
-        function updateStatus(msg, color='black') {
-            statusDiv.style.display = 'block';
-            statusDiv.textContent = msg;
-            statusDiv.style.color = color;
-        }
+        // 1. AUTO-RUN CHUNKED LOADER
+        window.loadQuotes = async () => {
+            statusDiv.textContent = "Connecting to database...";
+            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Loading records...</td></tr>";
 
-        // 1. EXECUTE SEARCH (The Engine)
-        window.executeSearch = async () => {
-            // Clear current
             flatData = [];
-            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>Searching Database...</td></tr>";
-            updateStatus("Searching...", "blue");
-
-            // Gather inputs
-            const s_part = document.getElementById('s_part').value.trim();
-            const s_supplier = document.getElementById('s_supplier').value.trim();
-            const s_desc = document.getElementById('s_desc').value.trim().toUpperCase(); // For client filtering
+            const CHUNK_SIZE = 2000; // Smaller chunks are safer
+            let lastDoc = null;
+            let keepScanning = true;
+            let totalScanned = 0;
 
             try {
-                let querySnapshot;
-
-                // STRATEGY: Find the most specific search term provided
-                if (s_part) {
-                    // Search by Part Number (Primary Key - Very Fast)
-                    // We use >= and <= to simulate "Starts With" behavior
-                    const q = query(
-                        collection(db, "parts"), 
-                        where("partNo", ">=", s_part),
-                        where("partNo", "<=", s_part + '\uf8ff'),
-                        limit(500) // Safety limit
-                    );
-                    querySnapshot = await getDocs(q);
-                } 
-                else if (s_supplier) {
-                    // Search by Supplier requires an index, skipping to full scan fallback if needed or client-side match
-                    // Since "quotes" is an array, searching inside it directly via simple query is hard.
-                    // We will fallback to a recent scan for supplier if no part no is given.
-                    alert("For speed, please search by Part Number. Searching by Supplier performs a limited recent scan.");
-                    const q = query(collection(db, "parts"), limit(2000));
-                    querySnapshot = await getDocs(q);
-                } 
-                else {
-                    // Empty search? Load recent 100
-                    const q = query(collection(db, "parts"), limit(100));
-                    querySnapshot = await getDocs(q);
-                }
-
-                // Process Results
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    
-                    // Filter: Client side double-check (useful for Description filter)
-                    if (s_desc && (!data.desc || !data.desc.toUpperCase().includes(s_desc))) return;
-
-                    if (data.quotes && data.quotes.length > 0) {
-                        data.quotes.forEach(quote => {
-                            // Filter: Supplier check if entered
-                            if (s_supplier && (!quote.supplier || !quote.supplier.toUpperCase().includes(s_supplier.toUpperCase()))) return;
-
-                            flatData.push({
-                                partNo: data.partNo || "",
-                                desc: data.desc || "",
-                                spmig: data.spmig || "", 
-                                nsn: data.nsn || "",     
-                                supplier: quote.supplier || "",
-                                rank: (quote.rank || 999).toString(),
-                                date: quote.date || "",
-                                price: quote.price ? parseFloat(quote.price).toFixed(2) : "0.00",
-                                mfg: quote.mfg || "",
-                                file: quote.file || "",
-                                qty: (quote.qty || 1).toString(),
-                                lead: quote.lead || ""
-                            });
-                        });
+                // Loop until no more data
+                while (keepScanning) {
+                    let q;
+                    // Construct Query
+                    if (lastDoc) {
+                        q = query(collection(db, "parts"), orderBy("partNo"), startAfter(lastDoc), limit(CHUNK_SIZE));
+                    } else {
+                        q = query(collection(db, "parts"), orderBy("partNo"), limit(CHUNK_SIZE));
                     }
-                });
 
-                if (flatData.length === 0) {
-                    updateStatus("No matching records found.", "red");
-                    tbody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px;'>No records found.</td></tr>";
-                } else {
-                    updateStatus(`Found ${flatData.length} records.`, "green");
-                    renderTable();
+                    // Execute
+                    const snapshot = await getDocs(q);
+
+                    // Check if done
+                    if (snapshot.empty) {
+                        keepScanning = false;
+                        break;
+                    }
+
+                    // Process Data
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        
+                        // Add rows for every quote found
+                        if (data.quotes && data.quotes.length > 0) {
+                            data.quotes.forEach(quote => {
+                                flatData.push({
+                                    partNo: data.partNo || "",
+                                    desc: data.desc || "",
+                                    spmig: data.spmig || "", 
+                                    nsn: data.nsn || "",     
+                                    supplier: quote.supplier || "",
+                                    rank: (quote.rank || 999).toString(),
+                                    date: quote.date || "",
+                                    price: quote.price ? parseFloat(quote.price).toFixed(2) : "0.00",
+                                    mfg: quote.mfg || "",
+                                    file: quote.file || "",
+                                    qty: (quote.qty || 1).toString(),
+                                    lead: quote.lead || ""
+                                });
+                            });
+                        }
+                    });
+
+                    // Update Status & Table
+                    totalScanned += snapshot.size;
+                    statusDiv.textContent = `Loading... Scanned ${totalScanned} records. Found ${flatData.length} quotes.`;
+                    filterData(); // Update screen immediately
+
+                    // Set cursor for next loop
+                    lastDoc = snapshot.docs[snapshot.docs.length - 1];
+                    
+                    // Safety break (30k max)
+                    if (totalScanned > 30000) keepScanning = false; 
                 }
+
+                statusDiv.textContent = `Done. Loaded ${flatData.length} quotes.`;
+                statusDiv.style.color = "green";
+                statusDiv.style.fontWeight = "bold";
 
             } catch (err) {
                 console.error(err);
-                updateStatus("Error: " + err.message, "red");
-                tbody.innerHTML = `<tr><td colspan='12' style='color:red; text-align:center;'>Error: ${err.message}</td></tr>`;
+                statusDiv.textContent = "Error: " + err.message;
+                statusDiv.style.color = "red";
             }
         };
 
-        // 2. RENDER TABLE
+        // 2. FILTER LOGIC
+        window.filterData = () => {
+            const inputs = document.querySelectorAll('.col-search');
+            
+            filteredData = flatData.filter(row => {
+                if (!row.partNo.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
+                if (!row.desc.toUpperCase().includes(inputs[1].value.toUpperCase())) return false;
+                if (!row.spmig.toUpperCase().includes(inputs[2].value.toUpperCase())) return false;
+                if (!row.nsn.toUpperCase().includes(inputs[3].value.toUpperCase())) return false;
+                if (!row.supplier.toUpperCase().includes(inputs[4].value.toUpperCase())) return false;
+                if (!row.rank.includes(inputs[5].value)) return false;
+                if (!row.date.includes(inputs[6].value)) return false;
+                if (!row.price.includes(inputs[7].value)) return false;
+                if (!row.mfg.toUpperCase().includes(inputs[8].value.toUpperCase())) return false;
+                if (!row.file.toUpperCase().includes(inputs[9].value.toUpperCase())) return false;
+                if (!row.qty.includes(inputs[10].value)) return false;
+                if (!row.lead.toUpperCase().includes(inputs[11].value.toUpperCase())) return false;
+                return true;
+            });
+
+            // If user typing, stay on page 1
+            if(document.activeElement.tagName === "INPUT") currentPage = 1;
+            
+            renderTable();
+        };
+
+        // 3. RENDER TABLE
         function renderTable() {
             tbody.innerHTML = "";
+            if (filteredData.length === 0) {
+                const msg = flatData.length === 0 ? "Loading records..." : "No quotes found.";
+                tbody.innerHTML = `<tr><td colspan='12' style='text-align:center; padding:20px;'>${msg}</td></tr>`;
+                updateControls();
+                return;
+            }
+
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            const pageData = flatData.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, endIndex);
 
             pageData.forEach(row => {
                 let rankColor = "#ccc";
@@ -227,18 +240,21 @@
         }
 
         function updateControls() {
-            const totalPages = Math.ceil(flatData.length / itemsPerPage) || 1;
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
             paginationDiv.innerHTML = `
                 <button onclick="prevPage()" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
-                <span style="font-weight:bold; margin: 0 15px;">Page ${currentPage} of ${totalPages} (${flatData.length} records)</span>
+                <span style="font-weight:bold; margin: 0 15px;">Page ${currentPage} of ${totalPages} (${filteredData.length} records)</span>
                 <button onclick="nextPage()" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
             `;
         }
 
         // Global functions
-        window.executeSearch = executeSearch;
+        window.filterData = filterData;
         window.prevPage = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
-        window.nextPage = () => { if(currentPage < Math.ceil(flatData.length/itemsPerPage)) { currentPage++; renderTable(); } };
+        window.nextPage = () => { if(currentPage < Math.ceil(filteredData.length/itemsPerPage)) { currentPage++; renderTable(); } };
+
+        // Start immediately
+        document.addEventListener("DOMContentLoaded", loadQuotes);
 
     </script>
 </body>
