@@ -9,7 +9,7 @@
         
         /* Header Layout */
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h2 { color: #0056b3; margin: 0; display: flex; align-items: center; }
+        h2 { color: #0056b3; margin: 0; }
         
         /* Buttons */
         .btn-add { 
@@ -23,7 +23,11 @@
         .btn-purple { background-color: #6f42c1; }    
         .btn-blue   { background-color: #0056b3; }    
         .btn-orange { background-color: #fd7e14; }    
+        .btn-red    { background-color: #dc3545; } /* New Red Button */
         
+        .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
+        .btn-search:hover { background-color: #004494; }
+
         .btn-icon { padding: 5px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
         .btn-icon:hover { background: #eee; }
         .btn-del:hover { background: #ffe6e6; border-color: #ffcccc; color: red; }
@@ -51,7 +55,7 @@
         a.part-link:hover { color: #003366; }
         
         .col-currency { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; }
-        .hull-badge { color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .hull-badge { color: #333; border: 1px solid rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
         .req-badge { background-color: #e9ecef; color: #495057; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; }
         .buyer-badge { color: #333; border: 1px solid rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
 
@@ -74,10 +78,7 @@
 <body>
 
     <div class="header-container">
-        <h2>
-            <img src="image_10.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
-            Rush Procurement Base
-        </h2>
+        <h2>Rush Procurement Base</h2>
         <div>
             <a href="quotes.html" class="btn-add btn-grey">🔍 Quote Search</a>
             <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
@@ -91,7 +92,14 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 80px;">Actions</th>
+                    <th style="width: 100px; text-align: center;">
+                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" style="transform: scale(1.5); cursor: pointer;" title="Select All Filtered">
+                        <br>
+                        <span style="font-size:10px; color:#ddd;">Select All</span>
+                    </th>
+                    <th>Actions<br>
+                        <button onclick="deleteSelected()" class="btn-red" style="font-size: 11px; padding: 4px 8px; border: none; border-radius: 3px; cursor: pointer; color: white;">🗑️ Delete Selected</button>
+                    </th>
                     <th>Buyer<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
                     <th>Part No<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
                     <th>Req ID<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
@@ -182,15 +190,14 @@
 
         // --- COLOR GENERATOR ---
         function getColorForString(str) {
-            if (!str) return '#e9ecef'; // Default gray for empty
+            if (!str) return '#e9ecef';
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
                 hash = str.charCodeAt(i) + ((hash << 5) - hash);
             }
-            // Specific pastel colors for common values, random for others
             const colors = [
                 '#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', 
-                '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc'
+                '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc', '#ffe5d9'
             ];
             const index = Math.abs(hash % colors.length);
             return colors[index];
@@ -198,7 +205,7 @@
 
         // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
-            tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
             
             try {
                 const q = query(collection(db, "parts"), limit(10000));
@@ -223,8 +230,12 @@
                             const delta = quoteTotal - tBudget; 
 
                             flatTableData.push({
+                                // IDs
+                                id: Math.random().toString(36), // Unique ID for table mapping
                                 partNo: data.partNo,
                                 realIndex: index,
+                                
+                                // Data
                                 buyer: (req.buyer || "").toString(),
                                 reqId: (req.reqId || "").toString(),
                                 hull: (req.hull || "").toString(),
@@ -240,9 +251,14 @@
                                 selected: (req.selected || "").toString(),
                                 delta: bestQuote ? delta.toFixed(2) : "-",
                                 lead: bestQuote ? (bestQuote.lead || "-") : "-",
+                                
+                                // Logic
                                 rawDelta: delta,
                                 hasQuote: !!bestQuote,
-                                isBestRank: bestQuote ? (bestQuote.rank == 1) : false
+                                isBestRank: bestQuote ? (bestQuote.rank == 1) : false,
+                                
+                                // Selection State
+                                isSelected: false
                             });
                         });
                     }
@@ -250,7 +266,7 @@
                 filterData();
             } catch (err) {
                 console.error("Firebase Error:", err);
-                tbody.innerHTML = `<tr><td colspan='17' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan='18' style='color:red; text-align:center;'>Error loading data: ${err.message}</td></tr>`;
             }
         }
 
@@ -280,11 +296,74 @@
             renderTable();
         }
 
+        // --- CHECKBOX LOGIC ---
+        
+        // Select All Filtered Records
+        window.toggleSelectAll = () => {
+            const masterCheck = document.getElementById('selectAll');
+            const isChecked = masterCheck.checked;
+            
+            // Set state for ALL filtered rows (even those on other pages)
+            filteredData.forEach(row => {
+                row.isSelected = isChecked;
+            });
+            
+            renderTable(); // Re-render to show checks
+        }
+
+        // Select Individual Row
+        window.toggleRow = (id) => {
+            const row = flatTableData.find(r => r.id === id);
+            if(row) {
+                row.isSelected = !row.isSelected;
+                // If any row is unchecked, uncheck master
+                if(!row.isSelected) document.getElementById('selectAll').checked = false;
+            }
+        }
+
+        // BULK DELETE
+        window.deleteSelected = async () => {
+            const selectedRows = flatTableData.filter(r => r.isSelected);
+            if (selectedRows.length === 0) return alert("No records selected!");
+
+            if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected records?`)) return;
+
+            // Group by PartNo to minimize database writes
+            const partsToUpdate = {}; 
+            selectedRows.forEach(row => {
+                if(!partsToUpdate[row.partNo]) partsToUpdate[row.partNo] = [];
+                partsToUpdate[row.partNo].push(row.reqId); // Store ReqID to delete
+            });
+
+            try {
+                // Process each Part Document
+                for (const [partNo, reqIdsToRemove] of Object.entries(partsToUpdate)) {
+                    const docRef = doc(db, "parts", partNo);
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        
+                        // Filter out the deleted requisitions
+                        const updatedReqs = data.requisitions.filter(req => !reqIdsToRemove.includes(req.reqId));
+                        
+                        await updateDoc(docRef, { requisitions: updatedReqs });
+                    }
+                }
+                
+                alert("Bulk delete complete!");
+                document.getElementById('selectAll').checked = false; // Reset header
+                loadInitial(); // Reload data
+            } catch (err) {
+                alert("Error during bulk delete: " + err.message);
+            }
+        }
+
         // 3. RENDER TABLE
         function renderTable() {
             tbody.innerHTML = "";
             if (filteredData.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='18' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
                 updateControls();
                 return;
             }
@@ -304,12 +383,14 @@
                 if (row.isBestRank) rankColor = "#28a745";
                 else if (row.rank == '2') rankColor = "#ffc107";
                 
-                // Generate colors for Buyer and Hull
                 const buyerColor = getColorForString(row.buyer);
                 const hullColor = getColorForString(row.hull);
 
                 const tr = `
-                    <tr>
+                    <tr style="${row.isSelected ? 'background-color: #e8f4ff;' : ''}">
+                        <td style="text-align:center;">
+                            <input type="checkbox" ${row.isSelected ? 'checked' : ''} onclick="toggleRow('${row.id}')" style="transform: scale(1.2); cursor: pointer;">
+                        </td>
                         <td>
                             <button class="btn-icon" onclick="openEdit('${row.partNo}', ${row.realIndex})" title="Edit Req">✏️</button>
                             <button class="btn-icon btn-del" onclick="deleteReq('${row.partNo}', ${row.realIndex})" title="Delete Line">🗑️</button>
@@ -349,7 +430,7 @@
             document.getElementById('btnNext').onclick = () => { if(currentPage < totalPages) { currentPage++; renderTable(); } };
         }
 
-        // --- 4. DELETE LOGIC ---
+        // --- 4. DELETE LOGIC (Single) ---
         window.deleteReq = async (partNo, index) => {
             if(!confirm("Delete this requisition line?")) return;
             try {
@@ -425,6 +506,16 @@
                 }
             } catch (err) { alert("Error saving: " + err.message); }
         }
+
+        // Global function binding
+        window.filterData = filterData;
+        window.toggleSelectAll = toggleSelectAll;
+        window.toggleRow = toggleRow;
+        window.deleteSelected = deleteSelected;
+        window.openEdit = openEdit;
+        window.deleteReq = deleteReq;
+        window.saveEdit = saveEdit;
+        window.closeModal = closeModal;
 
         loadInitial();
     </script>
