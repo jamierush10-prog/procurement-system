@@ -250,10 +250,19 @@
                     // Supply Table
                     const quoteBody = document.getElementById("quotes-body");
                     quoteBody.innerHTML = "";
+                    
                     if (data.quotes && data.quotes.length > 0) {
-                        const sortedQuotes = data.quotes.sort((a, b) => a.rank - b.rank);
                         
-                        sortedQuotes.forEach((q, index) => {
+                        // FIX: Map original index BEFORE sorting
+                        // This ensures the buttons open the correct database record
+                        const indexedQuotes = data.quotes.map((q, i) => ({...q, origIndex: i}));
+                        
+                        const sortedQuotes = indexedQuotes.sort((a, b) => a.rank - b.rank);
+                        
+                        sortedQuotes.forEach((q) => {
+                            // Use the ORIGINAL index for the buttons
+                            const realIndex = q.origIndex;
+                            
                             let rankDisplay = q.rank;
                             let rankClass = 'rank-other';
                             
@@ -270,10 +279,10 @@
                             quoteBody.innerHTML += `
                                 <tr>
                                     <td>
-                                        <button class="btn-icon" onclick="openQuoteEdit(${index})">✏️</button>
-                                        <button class="btn-icon btn-del" onclick="deleteQuote(${index})">🗑️</button>
+                                        <button class="btn-icon" onclick="openQuoteEdit(${realIndex})">✏️</button>
+                                        <button class="btn-icon btn-del" onclick="deleteQuote(${realIndex})">🗑️</button>
                                     </td>
-                                    <td onclick="openQuickRank(${index}, ${q.rank})">
+                                    <td onclick="openQuickRank(${realIndex}, ${q.rank})">
                                         <span class="rank-badge ${rankClass}" title="Click to change rank">${rankDisplay}</span>
                                     </td>
                                     <td>${q.supplier}</td>
@@ -288,7 +297,10 @@
                                     <td style="text-align:center;">${noteBtn}</td>
                                 </tr>`;
                         });
+                    } else {
+                        quoteBody.innerHTML = "<tr><td colspan='12' style='text-align:center; padding:20px; color:#666;'>No quotes added yet.</td></tr>";
                     }
+
                 }
             } catch (err) { console.error(err); }
         }
@@ -310,8 +322,7 @@
                 const data = docSnap.data();
                 const updatedQuotes = [...data.quotes];
                 
-                // --- SINGLE #1 LOGIC ---
-                // If setting new rank to 1, find existing 1 and move to 3
+                // SINGLE WINNER LOGIC
                 if (newRank === 1) {
                     updatedQuotes.forEach((q, i) => {
                         if (q.rank === 1 && i !== index) {
@@ -319,9 +330,8 @@
                         }
                     });
                 }
-                // -----------------------
 
-                updatedQuotes[index].rank = newRank; // Update current
+                updatedQuotes[index].rank = newRank; 
                 
                 await updateDoc(docRef, { quotes: updatedQuotes });
                 document.getElementById('quickRankModal').style.display = 'none';
@@ -358,7 +368,7 @@
                 const docSnap = await getDoc(docRef);
                 const updatedQuotes = [...docSnap.data().quotes];
 
-                // --- SINGLE #1 LOGIC ---
+                // SINGLE WINNER LOGIC
                 if (newRank === 1) {
                     updatedQuotes.forEach((q, i) => {
                         if (q.rank === 1 && i !== index) {
@@ -366,7 +376,6 @@
                         }
                     });
                 }
-                // -----------------------
 
                 updatedQuotes[index] = {
                     ...updatedQuotes[index],
@@ -404,6 +413,7 @@
             document.getElementById('notesModal').style.display = 'flex';
         }
 
+        // Make functions globally available for HTML onclick
         window.openQuickRank = openQuickRank;
         window.saveQuickRank = saveQuickRank;
         window.openQuoteEdit = openQuoteEdit;
