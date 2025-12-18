@@ -33,6 +33,7 @@
         .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
         .req-tag { background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
         .hull-badge { background: #17a2b8; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+        .buyer-badge { background-color: #fff0f6; color: #c41d7f; border: 1px solid #ffadd2; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85em; }
         
         /* Buttons & Icons */
         .btn-icon { padding: 4px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
@@ -94,7 +95,7 @@
             <thead>
                 <tr>
                     <th>Req ID</th>
-                    <th>Hull / Project</th>
+                    <th>Buyer</th> <th>Hull / Project</th>
                     <th>Qty Required</th>
                     <th>UOM</th>
                     <th>Status</th>
@@ -120,7 +121,8 @@
                     <th>Price</th>
                     <th>Total</th> 
                     <th>Lead Time</th>
-                    <th>Valid Until</th> <th>Notes</th> 
+                    <th>Valid Until</th> 
+                    <th>Notes</th> 
                 </tr>
             </thead>
             <tbody id="quotes-body"></tbody>
@@ -235,7 +237,7 @@
                             reqBody.innerHTML += `
                                 <tr>
                                     <td><span class="req-tag">${r.reqId}</span></td>
-                                    <td><span class="hull-badge">${r.hull}</span></td>
+                                    <td><span class="buyer-badge">${r.buyer || '-'}</span></td> <td><span class="hull-badge">${r.hull}</span></td>
                                     <td><b>${r.qtyReq}</b></td>
                                     <td>${r.uom || 'EA'}</td>
                                     <td>${r.status || 'Open'}</td>
@@ -243,7 +245,7 @@
                                 </tr>`;
                         });
                     } else {
-                        reqBody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>No active requisitions.</td></tr>";
+                        reqBody.innerHTML = "<tr><td colspan='7' style='text-align:center; padding:20px;'>No active requisitions.</td></tr>";
                     }
 
                     // Supply Table
