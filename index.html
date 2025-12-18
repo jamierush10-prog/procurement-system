@@ -24,24 +24,28 @@
         .btn-blue   { background-color: #0056b3; }    
         .btn-orange { background-color: #fd7e14; }    
         
-        .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
-        .btn-search:hover { background-color: #004494; }
-
         .btn-icon { padding: 5px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; margin-right: 5px; }
         .btn-icon:hover { background: #eee; }
         .btn-del:hover { background: #ffe6e6; border-color: #ffcccc; color: red; }
 
-        /* Inputs */
-        .search-box { padding: 10px; width: 250px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin-right: 10px; }
-        .filter-box { padding: 10px; width: 150px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background-color: #fffbe6; border-color: #ffe58f; }
-
         /* Table Container */
-        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 70vh; }
+        .table-container { width: 100%; overflow-x: auto; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; height: 75vh; }
         
-        table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 14px; }
-        thead th { position: sticky; top: 0; background-color: #0056b3; color: white; padding: 12px 15px; text-align: left; z-index: 10; }
-        tbody td { padding: 10px 15px; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; min-width: 1800px; white-space: nowrap; font-size: 13px; }
+        thead th { position: sticky; top: 0; background-color: #0056b3; color: white; padding: 8px 10px; text-align: left; z-index: 10; }
+        tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; }
         tbody tr:hover { background-color: #f1f1f1; }
+
+        /* Column Search Inputs */
+        .col-search {
+            width: 90%;
+            padding: 4px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #333;
+        }
 
         a.part-link { color: #0056b3; font-weight: bold; text-decoration: underline; cursor: pointer; }
         a.part-link:hover { color: #003366; }
@@ -54,6 +58,8 @@
         /* Pagination Controls */
         .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 20px; }
         .page-info { font-weight: bold; color: #555; }
+        .btn-nav { padding: 8px 16px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-nav:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
 
         /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
@@ -78,34 +84,27 @@
         </div>
     </div>
 
-    <div style="margin-bottom: 15px; display: flex; align-items: center;">
-        <input type="text" id="searchInput" class="search-box" placeholder="Search Part Number..." onkeyup="if(event.key === 'Enter') searchData()">
-        <input type="text" id="buyerFilter" class="filter-box" placeholder="Filter Buyer (Initials)" onkeyup="if(event.key === 'Enter') searchData()">
-        <button onclick="searchData()" class="btn-search">Search / Filter</button>
-        <button onclick="resetAll()" style="padding: 10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline; margin-left:10px;">Reset</button>
-    </div>
-
     <div class="table-container">
         <table>
             <thead>
                 <tr>
                     <th style="width: 80px;">Actions</th>
-                    <th>Buyer</th> 
-                    <th>Part No</th>
-                    <th>Req ID</th>
-                    <th>Hull</th>
-                    <th>Description</th>
-                    <th>Rank</th>
-                    <th>Best Supplier</th>
-                    <th>Quote Date</th>
-                    <th>QTY (Req)</th>
-                    <th>Price (USD)</th>
-                    <th>Total (USD)</th>
-                    <th>Budget (USD)</th>   
-                    <th>T-Budget (USD)</th> 
-                    <th>Selected</th>       
-                    <th>Delta (USD)</th>    
-                    <th>Lead Time</th>
+                    <th>Buyer<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Part No<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Req ID<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Hull<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Description<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Rank<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Best Supplier<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Quote Date<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>QTY<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Price<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Total<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Budget<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>T-Budget<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Selected<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Delta<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
+                    <th>Lead Time<br><input type="text" class="col-search" onkeyup="filterData()" placeholder="Search..."></th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -170,39 +169,84 @@
         if (!sessionStorage.getItem("austal_user")) window.location.href = "login.html";
 
         const tbody = document.getElementById('tableBody');
-        const searchInput = document.getElementById('searchInput');
-        const buyerInput = document.getElementById('buyerFilter');
         const paginationDiv = document.getElementById('paginationControls');
 
-        // --- PAGINATION STATE ---
-        let allActiveParts = []; // Stores filtered list in memory
+        // --- GLOBAL STATE ---
+        // 'flatTableData' will hold a simplified version of every row for easy filtering
+        let flatTableData = []; 
+        let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
 
         // 1. LOAD INITIAL DATA
         window.loadInitial = async () => {
-            searchInput.value = "";
-            buyerInput.value = "";
             tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>Loading full dashboard...</td></tr>";
             
             try {
-                // Fetch up to 10,000 records to ensure we catch everything
+                // Fetch max records
                 const q = query(collection(db, "parts"), limit(10000));
                 const querySnapshot = await getDocs(q);
                 
-                // Process and Filter Data ONCE
-                allActiveParts = [];
+                flatTableData = []; // Clear current
+
+                // FLATTEN THE DATA
+                // We convert the complex DB structure into simple rows so filtering is instant
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    // STRICT FILTER: Only keep parts with Active Requisitions
+                    
+                    // Only process active Requisitions
                     if (data.requisitions && data.requisitions.length > 0) {
-                        allActiveParts.push(data);
+                        
+                        // Calculate Best Quote for this part
+                        let bestQuote = null;
+                        if (data.quotes && data.quotes.length > 0) {
+                            bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
+                        }
+                        const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
+
+                        // Create a row for every requisition
+                        data.requisitions.forEach((req, index) => {
+                            const qty = req.qtyReq || 0;
+                            const budgetUnit = req.budget || 0;
+                            const quoteTotal = bestPrice * qty; 
+                            const tBudget = budgetUnit * qty;   
+                            const delta = quoteTotal - tBudget; 
+
+                            // Format Strings for Searching
+                            // We pre-format currency/dates here so the "Text Search" matches what the user sees
+                            flatTableData.push({
+                                // Metadata for Edit/Delete actions
+                                partNo: data.partNo,
+                                realIndex: index, // Used to delete/edit specific req index in DB
+
+                                // Searchable Fields
+                                buyer: (req.buyer || "").toString(),
+                                reqId: (req.reqId || "").toString(),
+                                hull: (req.hull || "").toString(),
+                                desc: (data.desc || "").toString(),
+                                rank: bestQuote ? bestQuote.rank.toString() : "-",
+                                supplier: bestQuote ? bestQuote.supplier : "-",
+                                quoteDate: bestQuote ? (bestQuote.date || "-") : "-",
+                                qty: qty.toString(),
+                                price: bestQuote ? bestPrice.toFixed(2) : "-",
+                                total: bestQuote ? quoteTotal.toFixed(2) : "-",
+                                budget: budgetUnit.toFixed(2),
+                                tBudget: tBudget.toFixed(2),
+                                selected: (req.selected || "").toString(),
+                                delta: bestQuote ? delta.toFixed(2) : "-",
+                                lead: bestQuote ? (bestQuote.lead || "-") : "-",
+                                
+                                // Raw values for logic/colors
+                                rawDelta: delta,
+                                hasQuote: !!bestQuote,
+                                isBestRank: bestQuote ? (bestQuote.rank == 1) : false
+                            });
+                        });
                     }
                 });
 
-                // Reset to Page 1 and Render
-                currentPage = 1;
-                renderPage();
+                // Initial Render
+                filterData();
 
             } catch (err) {
                 console.error("Firebase Error:", err);
@@ -210,120 +254,123 @@
             }
         }
 
-        window.resetAll = () => { loadInitial(); }
-
-        // 2. SEARCH FUNCTION (Client-Side)
-        window.searchData = async () => {
-            const term = searchInput.value.trim().toUpperCase();
+        // 2. FILTER FUNCTION (Triggered by any input keyup)
+        window.filterData = () => {
+            // Get all search inputs
+            const inputs = document.querySelectorAll('.col-search');
             
-            // If user searches specific part not in initial load, try fetching it
-            if(term && allActiveParts.length === 0) {
-                 try {
-                    const q = query(collection(db, "parts"), where("partNo", "==", term));
-                    const snap = await getDocs(q);
-                    allActiveParts = [];
-                    snap.forEach(doc => {
-                        const d = doc.data();
-                        if(d.requisitions && d.requisitions.length > 0) allActiveParts.push(d);
-                    });
-                 } catch(err) { console.error(err); }
-            }
+            // Filter the master list
+            filteredData = flatTableData.filter(row => {
+                // Check Buyer
+                if (!row.buyer.toUpperCase().includes(inputs[0].value.toUpperCase())) return false;
+                // Check Part No
+                if (!row.partNo.toUpperCase().includes(inputs[1].value.toUpperCase())) return false;
+                // Check Req ID
+                if (!row.reqId.toUpperCase().includes(inputs[2].value.toUpperCase())) return false;
+                // Check Hull
+                if (!row.hull.toUpperCase().includes(inputs[3].value.toUpperCase())) return false;
+                // Check Desc
+                if (!row.desc.toUpperCase().includes(inputs[4].value.toUpperCase())) return false;
+                // Check Rank
+                if (!row.rank.toUpperCase().includes(inputs[5].value.toUpperCase())) return false;
+                // Check Supplier
+                if (!row.supplier.toUpperCase().includes(inputs[6].value.toUpperCase())) return false;
+                // Check Date
+                if (!row.quoteDate.toUpperCase().includes(inputs[7].value.toUpperCase())) return false;
+                // Check Qty
+                if (!row.qty.includes(inputs[8].value)) return false;
+                // Check Price
+                if (!row.price.includes(inputs[9].value)) return false;
+                // Check Total
+                if (!row.total.includes(inputs[10].value)) return false;
+                // Check Budget
+                if (!row.budget.includes(inputs[11].value)) return false;
+                // Check T-Budget
+                if (!row.tBudget.includes(inputs[12].value)) return false;
+                // Check Selected
+                if (!row.selected.toUpperCase().includes(inputs[13].value.toUpperCase())) return false;
+                // Check Delta
+                if (!row.delta.includes(inputs[14].value)) return false;
+                // Check Lead
+                if (!row.lead.toUpperCase().includes(inputs[15].value.toUpperCase())) return false;
 
-            // Reset pagination and render (filtering happens inside renderPage)
-            currentPage = 1; 
-            renderPage(); 
-        }
-
-        // 3. RENDER PAGE (The Core Logic)
-        function renderPage() {
-            tbody.innerHTML = "";
-            
-            // A. Apply Client Filters
-            const term = searchInput.value.trim().toUpperCase();
-            const buyerTerm = buyerInput.value.trim().toUpperCase();
-
-            const filteredList = allActiveParts.filter(part => {
-                const partMatch = !term || part.partNo.includes(term);
-                const buyerMatch = !buyerTerm || part.requisitions.some(r => (r.buyer||"").toUpperCase().includes(buyerTerm));
-                return partMatch && buyerMatch;
+                return true; // Passed all checks
             });
 
-            if (filteredList.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>No active requisitions found matching your filter.</td></tr>";
-                paginationDiv.innerHTML = "";
+            // Reset to page 1 of results
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 3. RENDER TABLE (Pagination Logic)
+        function renderTable() {
+            tbody.innerHTML = "";
+            
+            if (filteredData.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='17' style='text-align:center; padding:20px;'>No records found matching filters.</td></tr>";
+                updateControls();
                 return;
             }
 
-            // B. Slice for Pagination
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            const pageData = filteredList.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, endIndex);
 
-            // C. Draw Rows
-            pageData.forEach(data => {
-                
-                // Find Best Quote
-                let bestQuote = null;
-                if (data.quotes && data.quotes.length > 0) {
-                    bestQuote = data.quotes.find(q => q.rank == 1) || data.quotes.sort((a,b) => a.rank - b.rank)[0];
+            pageData.forEach(row => {
+                // Logic for Delta Color
+                let deltaColor = "#333";
+                if(row.hasQuote) {
+                    if(row.rawDelta > 0) deltaColor = "#d9534f"; // Red
+                    if(row.rawDelta <= 0) deltaColor = "#28a745"; // Green
                 }
-                const bestPrice = bestQuote ? Number(bestQuote.price) : 0;
 
-                // Render Requisitions
-                data.requisitions.forEach((req, index) => {
-                    // Re-filter specific lines if buyer filter is active
-                    if(buyerTerm && !(req.buyer||"").toUpperCase().includes(buyerTerm)) return;
-
-                    const qty = req.qtyReq || 0;
-                    const budgetUnit = req.budget || 0;
-                    const quoteTotal = bestPrice * qty;
-                    const tBudget = budgetUnit * qty;
-                    const delta = quoteTotal - tBudget;
-
-                    let deltaColor = "#333";
-                    if(bestQuote) {
-                        if(delta > 0) deltaColor = "#d9534f"; // Red
-                        if(delta <= 0) deltaColor = "#28a745"; // Green
-                    }
-
-                    const row = `
-                        <tr>
-                            <td>
-                                <button class="btn-icon" onclick="openEdit('${data.partNo}', ${index})" title="Edit Req">✏️</button>
-                                <button class="btn-icon btn-del" onclick="deleteReq('${data.partNo}', ${index})" title="Delete Line">🗑️</button>
-                            </td>
-                            <td><span class="buyer-badge">${req.buyer || '-'}</span></td>
-                            <td><a href="detail.html?part=${data.partNo}" class="part-link">${data.partNo}</a></td>
-                            <td><span class="req-badge">${req.reqId || '-'}</span></td>
-                            <td><span class="hull-badge">${req.hull || '-'}</span></td>
-                            <td>${data.desc || '-'}</td>
-                            <td><span style="background:${bestQuote ? (bestQuote.rank == 1 ? '#28a745' : '#ffc107') : '#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${bestQuote ? bestQuote.rank : '-'}</span></td>
-                            <td>${bestQuote ? bestQuote.supplier : '-'}</td>
-                            <td>${bestQuote ? bestQuote.date : '-'}</td>
-                            <td>${qty}</td>
-                            <td class="col-currency">${bestQuote ? '$'+bestPrice.toFixed(2) : '-'}</td>
-                            <td class="col-currency" style="background:#e8f4ff;">${bestQuote ? '$'+quoteTotal.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
-                            <td class="col-currency">$${budgetUnit.toFixed(2)}</td>
-                            <td class="col-currency">$${tBudget.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                            <td>${req.selected || '-'}</td>
-                            <td class="col-currency" style="font-weight:bold; color:${deltaColor};">${bestQuote ? '$'+delta.toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
-                            <td>${bestQuote ? bestQuote.lead : '-'}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                // Logic for Rank Badge Color
+                let rankColor = "#ccc";
+                if (row.isBestRank) rankColor = "#28a745"; // Green
+                else if (row.rank == '2') rankColor = "#ffc107"; // Yellow
+                
+                const tr = `
+                    <tr>
+                        <td>
+                            <button class="btn-icon" onclick="openEdit('${row.partNo}', ${row.realIndex})" title="Edit Req">✏️</button>
+                            <button class="btn-icon btn-del" onclick="deleteReq('${row.partNo}', ${row.realIndex})" title="Delete Line">🗑️</button>
+                        </td>
+                        <td><span class="buyer-badge">${row.buyer}</span></td>
+                        <td><a href="detail.html?part=${row.partNo}" class="part-link">${row.partNo}</a></td>
+                        <td><span class="req-badge">${row.reqId}</span></td>
+                        <td><span class="hull-badge">${row.hull}</span></td>
+                        <td>${row.desc}</td>
+                        <td><span style="background:${rankColor}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${row.rank}</span></td>
+                        <td>${row.supplier}</td>
+                        <td>${row.quoteDate}</td>
+                        <td>${row.qty}</td>
+                        <td class="col-currency">${row.price === '-' ? '-' : '$'+row.price}</td>
+                        <td class="col-currency" style="background:#e8f4ff;">${row.total === '-' ? '-' : '$'+row.total}</td>
+                        <td class="col-currency">$${row.budget}</td>
+                        <td class="col-currency">$${row.tBudget}</td>
+                        <td>${row.selected}</td>
+                        <td class="col-currency" style="font-weight:bold; color:${deltaColor};">${row.delta === '-' ? '-' : '$'+row.delta}</td>
+                        <td>${row.lead}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += tr;
             });
 
-            // D. Render Controls
-            const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+            updateControls();
+        }
+
+        function updateControls() {
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
             paginationDiv.innerHTML = `
-                <button id="btnPrev" class="btn-search" style="background:#555; ${currentPage===1?'opacity:0.5':''}" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
-                <span class="page-info">Page ${currentPage} of ${totalPages} (${filteredList.length} Items)</span>
-                <button id="btnNext" class="btn-search" style="background:#555; ${currentPage===totalPages?'opacity:0.5':''}" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
+                <button id="btnPrev" class="btn-nav" ${currentPage===1?'disabled':''}>&#8592; Previous</button>
+                <span class="page-info">Showing ${totalItems} Records | Page ${currentPage} of ${totalPages}</span>
+                <button id="btnNext" class="btn-nav" ${currentPage===totalPages?'disabled':''}>Next &#8594;</button>
             `;
 
-            document.getElementById('btnPrev').onclick = () => { if(currentPage > 1) { currentPage--; renderPage(); } };
-            document.getElementById('btnNext').onclick = () => { if(currentPage < totalPages) { currentPage++; renderPage(); } };
+            document.getElementById('btnPrev').onclick = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
+            document.getElementById('btnNext').onclick = () => { if(currentPage < totalPages) { currentPage++; renderTable(); } };
         }
 
         // --- 4. DELETE LOGIC ---
@@ -338,13 +385,8 @@
                     updatedReqs.splice(index, 1);
                     await updateDoc(docRef, { requisitions: updatedReqs });
                     
-                    // Update local state
-                    const localIdx = allActiveParts.findIndex(p => p.partNo === partNo);
-                    if(localIdx > -1) {
-                        allActiveParts[localIdx].requisitions = updatedReqs;
-                        if(updatedReqs.length === 0) allActiveParts.splice(localIdx, 1);
-                    }
-                    renderPage();
+                    // Reload to refresh flat data structure
+                    loadInitial();
                 }
             } catch (err) { alert("Error: " + err.message); }
         }
@@ -402,10 +444,14 @@
                         budget: Number(document.getElementById('edit_budget').value),
                         selected: document.getElementById('edit_selected').value,
                         status: "Open",
-                        dateAdded: new Date().toISOString()
+                        dateAdded: newReqData && newReqData.dateAdded ? newReqData.dateAdded : new Date().toISOString()
                     };
 
-                    if(updatedReqs[index].dateAdded) newReqData.dateAdded = updatedReqs[index].dateAdded;
+                    // Preserve original date added if possible
+                    if(data.requisitions[index] && data.requisitions[index].dateAdded) {
+                         newReqData.dateAdded = data.requisitions[index].dateAdded;
+                    }
+
                     updatedReqs[index] = newReqData;
 
                     await updateDoc(docRef, { 
@@ -413,19 +459,13 @@
                         desc: document.getElementById('edit_desc').value
                     });
 
-                    // Update Local State
-                    const localIdx = allActiveParts.findIndex(p => p.partNo === partNo);
-                    if(localIdx > -1) {
-                        allActiveParts[localIdx].requisitions = updatedReqs;
-                        allActiveParts[localIdx].desc = document.getElementById('edit_desc').value;
-                    }
-
                     closeModal();
-                    renderPage();
+                    loadInitial(); // Reload to refresh flat data
                 }
             } catch (err) { alert("Error saving: " + err.message); }
         }
 
+        // Trigger Load
         loadInitial();
     </script>
 </body>
