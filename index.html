@@ -18,9 +18,10 @@
         }
         .btn-add:hover { opacity: 0.9; }
         
-        .btn-green { background-color: #28a745; }   /* Single Req */
-        .btn-purple { background-color: #6f42c1; }  /* Batch Upload */
-        .btn-blue { background-color: #0056b3; }    /* Add Quote */
+        .btn-grey   { background-color: #555; }       /* Quote Search */
+        .btn-green  { background-color: #28a745; }    /* Single Req */
+        .btn-purple { background-color: #6f42c1; }    /* Batch Upload */
+        .btn-blue   { background-color: #0056b3; }    /* Add Quote */
         
         .btn-search { padding: 10px 20px; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 10px; }
         .btn-search:hover { background-color: #004494; }
@@ -65,6 +66,7 @@
     <div class="header-container">
         <h2>☁️ Procurement Cloud Master</h2>
         <div>
+            <a href="quotes.html" class="btn-add btn-grey">🔍 Quote Search</a>
             <a href="add-req.html" class="btn-add btn-green">+ Add Req</a>
             <a href="batch-req.html" class="btn-add btn-purple">⚡ Req Batch Upload</a>
             <a href="add-quote.html" class="btn-add btn-blue">+ Add Quote</a>
@@ -81,7 +83,8 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 80px;">Actions</th> <th>Part No</th>
+                    <th style="width: 80px;">Actions</th>
+                    <th>Part No</th>
                     <th>Req ID</th>
                     <th>Hull</th>
                     <th>Description</th>
@@ -219,7 +222,7 @@
                     });
                 } else {
                     // CASE B: Orphan Part (Quote exists, but no Req)
-                    // We now add buttons here too. Index -1 tells the system it's a "New" req.
+                    // Index -1 tells the system it's a "New" req for a "Create" action.
                     const row = `
                         <tr>
                             <td>

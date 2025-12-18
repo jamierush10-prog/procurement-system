@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote History Search</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        
+        .nav-link { display: inline-block; margin-bottom: 20px; color: #0056b3; text-decoration: none; font-weight: bold; }
+        .nav-link:hover { text-decoration: underline; }
+
+        /* Search Card */
+        .search-card {
+            background: white; padding: 25px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px;
+            border-top: 5px solid #6f42c1; /* Purple to distinguish from main page */
+        }
+        
+        h2 { margin-top: 0; color: #6f42c1; }
+        
+        .search-grid { display: flex; gap: 15px; margin-top: 15px; }
+        .search-group { flex: 1; }
+        
+        label { display: block; font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+
+        .btn-search { 
+            background-color: #6f42c1; color: white; border: none; padding: 10px 25px; 
+            border-radius: 4px; font-weight: bold; cursor: pointer; height: 100%; margin-top: 24px;
+        }
+        .btn-search:hover { background-color: #5a32a3; }
+        
+        .btn-reset {
+            background-color: #eee; color: #333; border: none; padding: 10px 20px;
+            border-radius: 4px; cursor: pointer; margin-top: 24px;
+        }
+        .btn-reset:hover { background-color: #ddd; }
+
+        /* Results Table */
+        .table-container {
+            width: 100%; overflow-x: auto; background: #fff; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px;
+        }
+        
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; font-size: 14px; white-space: nowrap; }
+        thead th { position: sticky; top: 0; background-color: #444; color: white; padding: 12px 15px; text-align: left; }
+        tbody td { padding: 10px 15px; border-bottom: 1px solid #eee; }
+        tbody tr:hover { background-color: #f1f1f1; }
+
+        .col-currency { text-align: right; font-family: monospace; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="nav-link">&#8592; Back to Dashboard</a>
+
+    <div class="search-card">
+        <h2>🔍 Search Quote History</h2>
+        <p>Find specific quotes by filtering multiple fields at once.</p>
+        
+        <div class="search-grid">
+            <div class="search-group">
+                <label>Part Number (Contains)</label>
+                <input type="text" id="s_part" placeholder="e.g. 162">
+            </div>
+            <div class="search-group">
+                <label>Description (Contains)</label>
+                <input type="text" id="s_desc" placeholder="e.g. Valve">
+            </div>
+            <div class="search-group">
+                <label>Supplier (Contains)</label>
+                <input type="text" id="s_supp" placeholder="e.g. ABC">
+            </div>
+            <div>
+                <button onclick="runDeepSearch()" class="btn-search">Search Quotes</button>
+            </div>
+            <div>
+                <button onclick="resetSearch()" class="btn-reset">Reset</button>
+            </div>
+        </div>
+        <div id="status" style="margin-top:10px; color:#666; font-style:italic;"></div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Part No</th>
+                    <th>Description</th>
+                    <th>Supplier</th>
+                    <th>Rank</th>
+                    <th>Price</th>
+                    <th>Qty Quoted</th>
+                    <th>Quote Date</th>
+                    <th>Lead Time</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+                <tr><td colspan="8" style="text-align:center; padding:20px;">Enter search terms above to find quotes.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { db, collection, getDocs } from './firebase-config.js';
+
+        // Security Check
+        if (!sessionStorage.getItem("austal_user")) {
+            window.location.href = "login.html";
+        }
+
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') runDeepSearch();
+        });
+
+        window.resetSearch = () => {
+            document.getElementById('s_part').value = "";
+            document.getElementById('s_desc').value = "";
+            document.getElementById('s_supp').value = "";
+            document.getElementById('resultsBody').innerHTML = "<tr><td colspan='8' style='text-align:center; padding:20px;'>Search cleared.</td></tr>";
+            document.getElementById('status').textContent = "";
+        }
+
+        window.runDeepSearch = async () => {
+            const partTerm = document.getElementById('s_part').value.trim().toUpperCase();
+            const descTerm = document.getElementById('s_desc').value.trim().toUpperCase();
+            const suppTerm = document.getElementById('s_supp').value.trim().toUpperCase();
+            const tbody = document.getElementById('resultsBody');
+            const status = document.getElementById('status');
+
+            if (!partTerm && !descTerm && !suppTerm) {
+                alert("Please enter at least one search term.");
+                return;
+            }
+
+            tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:20px;'>Scanning database...</td></tr>";
+            status.textContent = "Downloading data...";
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "parts"));
+                let matchCount = 0;
+                let rowsHTML = "";
+
+                status.textContent = `Scanning ${querySnapshot.size} records...`;
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const partNo = data.partNo || "";
+                    const desc = (data.desc || "").toUpperCase();
+                    
+                    // Filter Level 1: Part/Desc
+                    const partMatch = !partTerm || partNo.includes(partTerm);
+                    const descMatch = !descTerm || desc.includes(descTerm);
+
+                    if (partMatch && descMatch) {
+                        // Filter Level 2: Quotes
+                        if (data.quotes && data.quotes.length > 0) {
+                            data.quotes.forEach(q => {
+                                const supplier = (q.supplier || "").toUpperCase();
+                                const suppMatch = !suppTerm || supplier.includes(suppTerm);
+
+                                if (suppMatch) {
+                                    matchCount++;
+                                    rowsHTML += `
+                                        <tr>
+                                            <td><a href="detail.html?part=${data.partNo}" style="color:#0056b3; font-weight:bold;">${data.partNo}</a></td>
+                                            <td>${data.desc || '-'}</td>
+                                            <td>${q.supplier}</td>
+                                            <td><span style="background:${q.rank==1?'#28a745':'#ccc'}; color:white; padding:2px 6px; border-radius:4px; font-weight:bold;">${q.rank}</span></td>
+                                            <td class="col-currency">$${Number(q.price).toFixed(2)}</td>
+                                            <td>${q.qty}</td>
+                                            <td>${q.date}</td>
+                                            <td>${q.lead}</td>
+                                        </tr>
+                                    `;
+                                }
+                            });
+                        }
+                    }
+                });
+
+                if (matchCount === 0) {
+                    tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:20px;'>No matching quotes found.</td></tr>";
+                    status.textContent = "Search complete. 0 results.";
+                } else {
+                    tbody.innerHTML = rowsHTML;
+                    status.textContent = `Search complete. Found ${matchCount} matching quotes.`;
+                }
+
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan='8' style='color:red; text-align:center;'>Error: ${err.message}</td></tr>`;
+            }
+        }
+    </script>
+</body>
+</html>
